@@ -1,2 +1,1 @@
-# auth-server
-Authentication Server Backend
+# Authentication Server Backend
