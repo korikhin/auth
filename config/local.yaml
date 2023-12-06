@@ -1,0 +1,11 @@
+env: "local"
+http_server:
+  address: "localhost:8080"
+  read_timeout: 5s
+  write_timeout: 5s
+  idle_timeout: 60s
+  shutdown_timeout: 10s
+jwt:
+  issuer: "Studopolis Authorization"
+  access_ttl: 15m
+  refresh_ttl: 24h
