@@ -1,4 +1,4 @@
-package test
+package register
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 func New(log *slog.Logger) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.test.New"
+		const op = "handlers.register.New"
 
 		log := log.With(
 			slog.String("op", op),
@@ -20,9 +20,9 @@ func New(log *slog.Logger) http.Handler {
 		)
 
 		w.Header().Set("Content-Type", "application/json")
-		response := map[string]string{"message": "test"}
+		response := map[string]string{"message": "register"}
 
-		log.Info("test handler")
+		log.Info("register handler")
 		json.NewEncoder(w).Encode(response)
 	}
 

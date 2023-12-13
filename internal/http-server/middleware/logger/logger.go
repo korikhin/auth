@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	"github.com/studopolis/auth-server/internal/lib/logger"
+
+	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
@@ -21,7 +23,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				slog.String("path", r.URL.Path),
 				slog.String("remote_addr", r.RemoteAddr),
 				slog.String("user_agent", r.UserAgent()),
-				slog.String("request_id", request.GetID(r.Context())),
+				slog.String(logger.RequestIDAttr, requestMiddleware.GetID(r.Context())),
 			)
 
 			entry.Info(

@@ -93,7 +93,7 @@ func getECKeys() (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
 	return privateKey, publicKey.(*ecdsa.PublicKey)
 }
 
-// todo: func generateToken(user User, scope tokenScope, ttl time.Time) (string, error)
+// todo: func generateToken(user User, ttl time.Time) (string, error)
 func generateToken(user *User) (string, error) {
 	claims := &Claims{
 		UserRole:   user.Role,
@@ -101,8 +101,8 @@ func generateToken(user *User) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Minute)), // todo: add exp as an arg
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    authIssuer,
 			Subject:   fmt.Sprint(user.ID),
+			Issuer:    authIssuer,
 		},
 	}
 
