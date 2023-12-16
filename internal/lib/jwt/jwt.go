@@ -20,6 +20,8 @@ type Claims struct {
 const (
 	accessTokenScope  string = "access"
 	refreshTokenScope string = "refresh"
+
+	RoleAdmin string = "iam.admin"
 )
 
 var publicKey interface{}
@@ -55,7 +57,7 @@ func Validate(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-func Issue(scope string, user *models.User, config *config.JWT) (string, error) {
+func Issue(user *models.User, scope string, config *config.JWT) (string, error) {
 	var ttl time.Duration
 
 	switch scope {

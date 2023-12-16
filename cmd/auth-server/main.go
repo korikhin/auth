@@ -10,14 +10,12 @@ import (
 	"syscall"
 
 	"github.com/studopolis/auth-server/internal/config"
+	"github.com/studopolis/auth-server/internal/http-server/handlers"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 
 	jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
 	logMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
-
-	registerHandler "github.com/studopolis/auth-server/internal/http-server/handlers/register"
-	testHandler "github.com/studopolis/auth-server/internal/http-server/handlers/test"
 
 	"github.com/gorilla/mux"
 )
@@ -33,26 +31,24 @@ func main() {
 	// todo: storage setup
 	// ...
 
-	// routers setup
+	// router setup
 	router := mux.NewRouter()
 	router.Use(requestMiddleware.RequestID)
 
 	logMiddleware := logMiddleware.New(log)
 	router.Use(logMiddleware)
 
+	// handlers: public
 	publicRouter := router.PathPrefix("/").Subrouter()
+	handlers.Public(publicRouter, log)
+
+	// handlers: protected
 	protectedRouter := router.PathPrefix("/").Subrouter()
 
 	jwtMiddleware := jwtMiddleware.New(log)
 	protectedRouter.Use(jwtMiddleware)
 
-	// handlers: public
-	registerHandler := registerHandler.New(log)
-	publicRouter.Handle("/users", registerHandler).Methods(http.MethodPost)
-
-	// handlers: protected
-	testHandler := testHandler.New(log)
-	protectedRouter.Handle("/", testHandler).Methods(http.MethodGet)
+	handlers.Protected(protectedRouter, log)
 
 	// server setup
 	shutdown := make(chan os.Signal, 1)

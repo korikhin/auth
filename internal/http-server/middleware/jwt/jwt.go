@@ -38,6 +38,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				return
 			}
 
+			// todo: add isAdmin()
 			if claims.UserRole != requiredRole {
 				http.Error(w, "Access not granted", http.StatusForbidden)
 				return
