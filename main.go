@@ -135,7 +135,7 @@ func getUser(id string) (*User, error) {
 	err := row.Scan(&user.ID, &user.Nickname, &user.Email, &user.PasswordHash, &user.Role)
 
 	if err != nil {
-		log.Printf("Error quering the database: %v", err.Error())
+		log.Printf("Error quering the database: %v", err)
 		return nil, err
 	}
 
@@ -153,7 +153,7 @@ func getUserByCredentials(email, password string) (*User, error) {
 	err := row.Scan(&user.ID, &user.Nickname, &user.Email, &user.PasswordHash, &user.Role)
 
 	if err != nil {
-		log.Printf("Error quering the database: %v", err.Error())
+		log.Printf("Error quering the database: %v", err)
 		return nil, err
 	}
 
@@ -212,7 +212,7 @@ func protectedHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := getUser(userID)
 
 	if err != nil {
-		log.Printf("Error quering the user: %v", err.Error())
+		log.Printf("Error quering the user: %v", err)
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}

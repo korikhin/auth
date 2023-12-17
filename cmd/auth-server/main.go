@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/http-server/handlers"
 	"github.com/studopolis/auth-server/internal/lib/logger"
+	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
-	jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
+	// jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
 	logMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 
@@ -28,11 +31,17 @@ func main() {
 	log.Info("starting auth service", slog.String("env", string(config.Env)))
 	log.Debug("debug messages are enabled")
 
-	// todo: storage setup
-	// ...
+	// storage setup
+	storage, err := storage.New(config.Storage.Alpha)
+	if err != nil {
+		log.Error("failed to initialize storage", logger.Error(err))
+		os.Exit(1)
+	}
 
 	// router setup
 	router := mux.NewRouter()
+
+	// middleware
 	router.Use(requestMiddleware.RequestID)
 
 	logMiddleware := logMiddleware.New(log)
@@ -45,17 +54,12 @@ func main() {
 	// handlers: protected
 	protectedRouter := router.PathPrefix("/").Subrouter()
 
-	jwtMiddleware := jwtMiddleware.New(log)
-	protectedRouter.Use(jwtMiddleware)
+	// jwtMiddleware := jwtMiddleware.New(log)
+	// protectedRouter.Use(jwtMiddleware)
 
-	handlers.Protected(protectedRouter, log)
+	handlers.Protected(protectedRouter, log, storage)
 
 	// server setup
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	log.Info("starting server")
-
 	server := &http.Server{
 		Addr:         config.HTTPServer.Address,
 		Handler:      router,
@@ -64,13 +68,33 @@ func main() {
 		IdleTimeout:  config.HTTPServer.IdleTimeout,
 	}
 
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Info("starting server...")
 	go func() {
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Error("failed to start server")
+		if err := server.ListenAndServe(); err != nil {
+			if !errors.Is(err, http.ErrServerClosed) {
+				log.Error("failed to start server", logger.Error(err))
+			}
 		}
 	}()
 
-	log.Info("server started")
+	healthCheck := make(chan bool, 1)
+	go func() {
+		time.Sleep(config.HTTPServer.HealthTimeout)
+
+		_, err := net.Dial("tcp", server.Addr)
+		if err != nil {
+			log.Error("server health check failed", logger.Error(err))
+			healthCheck <- false
+		}
+		healthCheck <- true
+	}()
+
+	if <-healthCheck {
+		log.Info("server started")
+	}
 
 	<-shutdown
 	log.Info("stopping server")
@@ -79,7 +103,7 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Error("failed to stop server")
+		log.Error("failed to stop server", logger.Error(err))
 		return
 	}
 

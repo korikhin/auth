@@ -15,6 +15,7 @@ type Config struct {
 	Env        EnvType `yaml:"env" env-default:"local" env-required:"true"`
 	HTTPServer `yaml:"http_server"`
 	JWT        `yaml:"jwt"`
+	Storage    `yaml:"storage"`
 }
 
 type HTTPServer struct {
@@ -23,12 +24,26 @@ type HTTPServer struct {
 	WriteTimeout    time.Duration `yaml:"write_timeout" env-default:"5s"`
 	IdleTimeout     time.Duration `yaml:"idle_timeout" env-default:"60s"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env-default:"10s"`
+	HealthTimeout   time.Duration `yaml:"health_timeout" env-default:"1s"`
 }
 
 type JWT struct {
 	Issuer     string        `yaml:"issuer"`
 	AccessTTL  time.Duration `yaml:"access_ttl" env-default:"15m"`
 	RefreshTTL time.Duration `yaml:"refresh_ttl" env-default:"24h"`
+}
+
+type Storage struct {
+	Alpha Replica `yaml:"alpha"` // master
+	Beta  Replica `yaml:"beta"`
+	Gamma Replica `yaml:"gamma"`
+}
+
+type Replica struct {
+	URL             string        `yaml:"url"`
+	MinConns        int32         `yaml:"min_conns" env-default:"1"`
+	MaxConns        int32         `yaml:"max_conns" env-default:"1"`
+	MaxConnIdleTime time.Duration `yaml:"idle_timeout" env-default:"30m"`
 }
 
 const (

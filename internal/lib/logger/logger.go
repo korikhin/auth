@@ -7,11 +7,6 @@ import (
 	"github.com/studopolis/auth-server/internal/config"
 )
 
-const (
-	RequestIDAttr string = "request_id"
-	// todo: add the other logger attributes
-)
-
 func New(env config.EnvType) *slog.Logger {
 	var log *slog.Logger
 

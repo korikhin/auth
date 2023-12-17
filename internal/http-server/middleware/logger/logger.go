@@ -13,7 +13,7 @@ import (
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
 	log.Info("logger middleware enabled")
 	log = log.With(
-		slog.String("component", "http/logger"),
+		logger.Component("middleware/logger"),
 	)
 
 	return func(next http.Handler) http.Handler {
@@ -23,7 +23,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				slog.String("path", r.URL.Path),
 				slog.String("remote_addr", r.RemoteAddr),
 				slog.String("user_agent", r.UserAgent()),
-				slog.String(logger.RequestIDAttr, requestMiddleware.GetID(r.Context())),
+				logger.RequestID(requestMiddleware.GetID(r.Context())),
 			)
 
 			entry.Info(
@@ -34,7 +34,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 			defer func() {
 				entry.Info(
 					"completed",
-					slog.String("duration", time.Since(tic).String()),
+					logger.Duration(time.Since(tic)),
 				)
 			}()
 

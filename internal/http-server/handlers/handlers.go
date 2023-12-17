@@ -8,6 +8,7 @@ import (
 	login "github.com/studopolis/auth-server/internal/http-server/handlers/login"
 	register "github.com/studopolis/auth-server/internal/http-server/handlers/register"
 	test "github.com/studopolis/auth-server/internal/http-server/handlers/test"
+	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	"github.com/gorilla/mux"
 )
@@ -24,7 +25,7 @@ func Public(r *mux.Router, log *slog.Logger) {
 	r.Handle("/auth", auth).Methods(http.MethodGet)
 }
 
-func Protected(r *mux.Router, log *slog.Logger) {
-	test := test.New(log)
+func Protected(r *mux.Router, log *slog.Logger, storage *storage.Storage) {
+	test := test.New(log, storage)
 	r.Handle("/test", test).Methods(http.MethodGet)
 }

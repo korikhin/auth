@@ -1,10 +1,10 @@
 package register
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
+	"github.com/studopolis/auth-server/internal/lib/http/responder"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
@@ -15,15 +15,13 @@ func New(log *slog.Logger) http.Handler {
 		const op = "handlers.register.New"
 
 		log := log.With(
-			slog.String("op", op),
-			slog.String(logger.RequestIDAttr, requestMiddleware.GetID(r.Context())),
+			logger.Operand(op),
+			logger.RequestID(requestMiddleware.GetID(r.Context())),
 		)
 
-		w.Header().Set("Content-Type", "application/json")
-		response := map[string]string{"message": "register"}
-
 		log.Info("register handler")
-		json.NewEncoder(w).Encode(response)
+		response := map[string]string{"message": "register"}
+		responder.JSON(w, r, response)
 	}
 
 	return http.HandlerFunc(handler)

@@ -1,29 +1,35 @@
 package test
 
 import (
-	"encoding/json"
+	"context"
 	"log/slog"
 	"net/http"
 
+	"github.com/studopolis/auth-server/internal/lib/http/responder"
 	"github.com/studopolis/auth-server/internal/lib/logger"
+	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
-func New(log *slog.Logger) http.Handler {
+func New(log *slog.Logger, storage *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.test.New"
 
 		log := log.With(
-			slog.String("op", op),
-			slog.String(logger.RequestIDAttr, requestMiddleware.GetID(r.Context())),
+			logger.Operand(op),
+			logger.RequestID(requestMiddleware.GetID(r.Context())),
 		)
 
-		w.Header().Set("Content-Type", "application/json")
-		response := map[string]string{"message": "test"}
+		ping, err := storage.Ping(context.Background())
+		if err != nil {
+			log.Error("failed to ping storage", logger.Error(err))
+			http.Error(w, "Failed to ping storage", http.StatusInternalServerError)
+			return
+		}
 
-		log.Info("test handler")
-		json.NewEncoder(w).Encode(response)
+		response := map[string]string{"message": ping}
+		responder.JSON(w, r, response)
 	}
 
 	return http.HandlerFunc(handler)

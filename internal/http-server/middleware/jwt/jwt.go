@@ -6,16 +6,19 @@ import (
 	"net/http"
 	"strings"
 
+	ctx "github.com/studopolis/auth-server/internal/lib/context"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
+	// "github.com/studopolis/auth-server/internal/lib/logger"
 )
 
-type contextKey string
-
-const (
-	userKey contextKey = "user"
-)
+var userCtxKey = &ctx.ContextKey{Name: "User"}
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
+	log.Info("jwt middleware enabled")
+	// log = log.With(
+	// 	logger.Component("middleware/jwt"),
+	// )
+
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			tokenHeader := strings.TrimSpace(r.Header.Get("Authorization"))
@@ -38,13 +41,13 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				return
 			}
 
-			// todo: add isAdmin()
+			// todo: add isAdmin() (is iam.admin)
 			if claims.UserRole != requiredRole {
 				http.Error(w, "Access not granted", http.StatusForbidden)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userKey, claims)
+			ctx := context.WithValue(r.Context(), userCtxKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 
