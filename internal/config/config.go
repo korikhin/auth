@@ -53,17 +53,17 @@ const (
 )
 
 func MustLoad() *Config {
-	configPath := fetchConfigPath()
-	if configPath == "" {
+	path := fetchConfigPath()
+	if path == "" {
 		panic("CONFIG_PATH is not set")
 	}
 
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		panic(fmt.Sprintf("config file does not exist: %s", configPath))
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		panic(fmt.Sprintf("config file does not exist: %s", path))
 	}
 
 	var config Config
-	if err := cleanenv.ReadConfig(configPath, &config); err != nil {
+	if err := cleanenv.ReadConfig(path, &config); err != nil {
 		panic(fmt.Sprintf("failed to read config: %s", err))
 	}
 

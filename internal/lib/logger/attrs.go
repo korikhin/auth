@@ -28,7 +28,7 @@ func Error(err error) slog.Attr {
 	}
 }
 
-func Operand(op string) slog.Attr {
+func Operation(op string) slog.Attr {
 	return slog.Attr{
 		Key:   "op",
 		Value: slog.StringValue(op),

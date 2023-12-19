@@ -10,11 +10,9 @@ import (
 	"strings"
 	"sync/atomic"
 
-	ctx "github.com/studopolis/auth-server/internal/lib/context"
+	httplib "github.com/studopolis/auth-server/internal/lib/http"
 )
 
-var requestCtxKey = &ctx.ContextKey{Name: "RequestID"}
-var RequestIDHeader = "X-Request-ID"
 var prefix string
 var reqID uint64
 
@@ -39,14 +37,14 @@ func init() {
 func RequestID(next http.Handler) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		requestID := r.Header.Get(RequestIDHeader)
+		requestID := r.Header.Get(httplib.RequestIDHeader)
 
 		if requestID == "" {
 			myID := atomic.AddUint64(&reqID, 1)
 			requestID = fmt.Sprintf("%s-%06d", prefix, myID)
 		}
 
-		ctx = context.WithValue(ctx, requestCtxKey, requestID)
+		ctx = context.WithValue(ctx, httplib.RequestCtxKey, requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 
@@ -58,7 +56,7 @@ func GetID(ctx context.Context) string {
 		return ""
 	}
 
-	if id, ok := ctx.Value(requestCtxKey).(string); ok {
+	if id, ok := ctx.Value(httplib.RequestCtxKey).(string); ok {
 		return id
 	}
 

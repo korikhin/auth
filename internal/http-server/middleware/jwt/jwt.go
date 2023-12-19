@@ -6,23 +6,22 @@ import (
 	"net/http"
 	"strings"
 
-	ctx "github.com/studopolis/auth-server/internal/lib/context"
+	httplib "github.com/studopolis/auth-server/internal/lib/http"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
-	// "github.com/studopolis/auth-server/internal/lib/logger"
+	"github.com/studopolis/auth-server/internal/lib/logger"
 )
-
-var userCtxKey = &ctx.ContextKey{Name: "User"}
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
 	log.Info("jwt middleware enabled")
-	// log = log.With(
-	// 	logger.Component("middleware/jwt"),
-	// )
+	log = log.With(
+		logger.Component("middleware/jwt"),
+	)
 
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			tokenHeader := strings.TrimSpace(r.Header.Get("Authorization"))
 			if tokenHeader == "" {
+				log.Error("cannot get token", logger.Error(jwt.ErrTokenMissing))
 				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
 				return
 			}
@@ -35,7 +34,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				return
 			}
 
-			requiredRole := r.Header.Get("X-Required-Role")
+			requiredRole := r.Header.Get(httplib.RequiredRoleHeader)
 			if requiredRole == "" {
 				http.Error(w, "User role missing", http.StatusForbidden)
 				return
@@ -47,7 +46,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userCtxKey, claims)
+			ctx := context.WithValue(r.Context(), httplib.UserCtxKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 

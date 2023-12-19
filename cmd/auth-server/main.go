@@ -16,7 +16,7 @@ import (
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
-	// jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
+	jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
 	logMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 
@@ -49,13 +49,13 @@ func main() {
 
 	// handlers: public
 	publicRouter := router.PathPrefix("/").Subrouter()
-	handlers.Public(publicRouter, log)
+	handlers.Public(publicRouter, log, storage)
 
 	// handlers: protected
 	protectedRouter := router.PathPrefix("/").Subrouter()
 
-	// jwtMiddleware := jwtMiddleware.New(log)
-	// protectedRouter.Use(jwtMiddleware)
+	jwtMiddleware := jwtMiddleware.New(log)
+	protectedRouter.Use(jwtMiddleware)
 
 	handlers.Protected(protectedRouter, log, storage)
 

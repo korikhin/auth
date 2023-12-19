@@ -191,7 +191,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json") // is required?
+	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{"token": accessToken}
 
 	cookies := http.Cookie{
