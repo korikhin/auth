@@ -40,14 +40,19 @@ func init() {
 }
 
 func GetAccessToken(r *http.Request) (string, error) {
-	const op = "jwt.AccessToken"
+	const op = "jwt.GetAccessToken"
 
 	h := strings.TrimSpace(r.Header.Get(httplib.AuthHeader))
 	if h == "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
 	}
 
-	t := strings.TrimSpace(strings.TrimPrefix(h, bearerHeaderPrefix))
+	p := strings.SplitN(h, " ", 2)
+	if len(p) != 2 || p[0] != AuthHeaderPrefix {
+		return "", fmt.Errorf("%s: %w", op, ErrInvalidToken)
+	}
+
+	t := p[1]
 	if t == "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
 	}
@@ -58,12 +63,12 @@ func GetAccessToken(r *http.Request) (string, error) {
 func SetAccessToken(w http.ResponseWriter, token string) {
 	// const op = "jwt.SetAccessToken"
 
-	h := fmt.Sprintf("%s%s", bearerHeaderPrefix, token)
+	h := fmt.Sprintf("%s %s", AuthHeaderPrefix, token)
 	w.Header().Set(httplib.AuthHeader, h)
 }
 
 func GetRefreshToken(r *http.Request) (string, error) {
-	const op = "jwt.RefreshToken"
+	const op = "jwt.GetRefreshToken"
 
 	c, err := r.Cookie(refreshTokenCookie)
 	if err != nil {

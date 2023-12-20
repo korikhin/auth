@@ -5,10 +5,10 @@ import (
 )
 
 const (
+	AuthHeaderPrefix   = "Bearer"
 	AccessTokenScope   = "access"
 	RefreshTokenScope  = "refresh"
 	refreshTokenCookie = "_rt"
-	bearerHeaderPrefix = "Bearer "
 
 	RoleAdmin = "iam.admin"
 )
