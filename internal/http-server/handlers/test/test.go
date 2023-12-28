@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/studopolis/auth-server/internal/lib/api/response"
 	"github.com/studopolis/auth-server/internal/lib/http/codec"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
@@ -21,14 +22,14 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 			logger.RequestID(requestMiddleware.GetID(r.Context())),
 		)
 
-		ping, err := s.Ping(context.Background())
+		err := s.Ping(context.Background())
 		if err != nil {
 			log.Error("failed to ping storage", logger.Error(err))
-			http.Error(w, "Failed to ping storage", http.StatusInternalServerError)
+			codec.JSONResponse(w, r, response.Error("Failed to establish database connection"))
 			return
 		}
 
-		response := map[string]string{"message": ping}
+		response := response.Ok("Database connection established")
 		codec.JSONResponse(w, r, response)
 	}
 

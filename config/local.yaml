@@ -8,8 +8,11 @@ http_server:
   health_timeout: 1s
 jwt:
   issuer: "Studopolis Authorization"
-  access_ttl: 15m
-  refresh_ttl: 24h
+  access_ttl: 10m
+  refresh_ttl: 60m
+  leeway: 2s
 storage:
   alpha:
     url: postgres://auth:auth@localhost:5432/postgres
+    read_timeout: 5s
+    write_timeout: 5s

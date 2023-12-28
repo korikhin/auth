@@ -41,3 +41,10 @@ func RequestID(id string) slog.Attr {
 		Value: slog.StringValue(id),
 	}
 }
+
+func User(id string) slog.Attr {
+	return slog.Attr{
+		Key:   "user",
+		Value: slog.StringValue(id),
+	}
+}

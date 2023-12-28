@@ -18,7 +18,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
-			entry := log.With(
+			log := log.With(
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.String("remote_addr", r.RemoteAddr),
@@ -26,13 +26,13 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				logger.RequestID(requestMiddleware.GetID(r.Context())),
 			)
 
-			entry.Info(
+			log.Info(
 				"starting",
 			)
 
 			tic := time.Now()
 			defer func() {
-				entry.Info(
+				log.Info(
 					"completed",
 					logger.Duration(time.Since(tic)),
 				)

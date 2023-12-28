@@ -32,7 +32,7 @@ func main() {
 	log.Debug("debug messages are enabled")
 
 	// storage setup
-	storage, err := storage.New(config.Storage.Alpha)
+	storage, err := storage.New(context.Background(), config.Storage)
 	if err != nil {
 		log.Error("failed to initialize storage", logger.Error(err))
 		os.Exit(1)
@@ -49,12 +49,12 @@ func main() {
 
 	// handlers: public
 	publicRouter := router.PathPrefix("/").Subrouter()
-	handlers.Public(publicRouter, log, storage)
+	handlers.Public(publicRouter, log, storage, *config)
 
 	// handlers: protected
 	protectedRouter := router.PathPrefix("/").Subrouter()
 
-	jwtMiddleware := jwtMiddleware.New(log)
+	jwtMiddleware := jwtMiddleware.New(log, storage, config.JWT)
 	protectedRouter.Use(jwtMiddleware)
 
 	handlers.Protected(protectedRouter, log, storage)

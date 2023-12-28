@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/authenticate"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/login"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/register"
@@ -13,18 +14,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Public(r *mux.Router, log *slog.Logger, s *storage.Storage) {
-	register := register.New(log)
+func Public(r *mux.Router, log *slog.Logger, s *storage.Storage, config config.Config) {
+	register := register.New(log, s)
 	r.Handle("/users", register).Methods(http.MethodPost)
 
-	login := login.New(log)
-	r.Handle("/users", login).Methods(http.MethodGet)
+	login := login.New(log, s, config.JWT)
+	r.Handle("/auth", login).Methods(http.MethodPost)
 
-	auth := authenticate.New()
-	r.Handle("/auth", auth).Methods(http.MethodGet)
+	test := test.New(log, s)
+	r.Handle("/test", test).Methods(http.MethodGet)
 }
 
 func Protected(r *mux.Router, log *slog.Logger, s *storage.Storage) {
-	test := test.New(log, s)
-	r.Handle("/test", test).Methods(http.MethodGet)
+	auth := authenticate.New()
+	r.Handle("/auth", auth).Methods(http.MethodGet)
 }

@@ -2,52 +2,111 @@ package jwt
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
+	"github.com/studopolis/auth-server/internal/config"
 	httplib "github.com/studopolis/auth-server/internal/lib/http"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
+	storage "github.com/studopolis/auth-server/internal/storage/postgres"
+
+	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
-func New(log *slog.Logger) func(next http.Handler) http.Handler {
+func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http.Handler) http.Handler {
 	log.Info("jwt middleware enabled")
-	log = log.With(
-		logger.Component("middleware/jwt"),
-	)
 
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
-			tokenHeader := strings.TrimSpace(r.Header.Get("Authorization"))
-			if tokenHeader == "" {
-				log.Error("cannot get token", logger.Error(jwt.ErrTokenMissing))
-				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+			log = log.With(
+				logger.Component("middleware/jwt"),
+				logger.RequestID(requestMiddleware.GetID(r.Context())),
+			)
+
+			accessToken, err := jwt.GetAccessToken(r)
+			if err != nil {
+				log.Error("cannot get access token", logger.Error(err))
+				http.Error(w, "Token is missing", http.StatusUnauthorized)
 				return
 			}
 
-			tokenString := strings.TrimPrefix(tokenHeader, "Bearer ")
-			claims, err := jwt.Validate(tokenString)
+			opts := &jwt.ValidationMask{
+				IssuedAt: true,
+				Issuer:   config.Issuer,
+				Leeway:   config.Leeway,
+			}
 
-			if err != nil {
+			claims, errValidation := jwt.Validate(accessToken, jwt.AccessTokenScope, opts)
+			if errValidation != nil && !errors.Is(errValidation, jwt.ErrTokenExpiredOnly) {
+				log.Error("cannot validate token", logger.Error(errValidation))
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
 
-			requiredRole := r.Header.Get(httplib.RequiredRoleHeader)
-			if requiredRole == "" {
-				http.Error(w, "User role missing", http.StatusForbidden)
+			ctxStorage, cancel := context.WithTimeout(context.Background(), s.Options.ReadTimeout)
+			defer cancel()
+
+			userID := claims.Subject
+			user, err := s.User(ctxStorage, userID)
+
+			if err != nil {
+				log.Error(fmt.Sprintf("cannot find user: %s", userID), logger.Error(err))
+				http.Error(w, "User not found", http.StatusInternalServerError)
 				return
 			}
 
-			// todo: add isAdmin() (is iam.admin)
-			if claims.UserRole != requiredRole {
-				http.Error(w, "Access not granted", http.StatusForbidden)
-				return
+			// update claims
+			claims.UserRole = user.Role
+
+			if errors.Is(errValidation, jwt.ErrTokenExpiredOnly) {
+				refreshToken, err := jwt.GetRefreshToken(r)
+				if err != nil {
+					log.Error("cannot get refresh token", logger.Error(err))
+					http.Error(w, "Token is missing", http.StatusUnauthorized)
+					return
+				}
+
+				opts := &jwt.ValidationMask{
+					IssuedAt: true,
+					Issuer:   claims.Issuer,
+					Subject:  claims.Subject,
+					Leeway:   config.Leeway,
+				}
+
+				if _, err := jwt.Validate(refreshToken, jwt.RefreshTokenScope, opts); err != nil {
+					log.Error("cannot validate refresh token", logger.Error(err))
+					http.Error(w, "Invalid token", http.StatusUnauthorized)
+					return
+				}
+
+				refreshToken, err = jwt.Issue(user, jwt.RefreshTokenScope, config)
+				if err != nil {
+					log.Error("cannot issue refresh token", logger.Error(err))
+					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
+					return
+				}
+
+				if err = jwt.SetRefreshToken(w, refreshToken); err != nil {
+					log.Error("cannot set refresh token", logger.Error(err))
+					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
+					return
+				}
+
+				accessToken, err = jwt.Issue(user, jwt.AccessTokenScope, config)
+				if err != nil {
+					log.Error("cannot issue token", logger.Error(err))
+					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
+					return
+				}
+
+				jwt.SetAccessToken(w, accessToken)
 			}
 
-			ctx := context.WithValue(r.Context(), httplib.UserCtxKey, claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			ctxHTTP := context.WithValue(r.Context(), httplib.UserCtxKey, claims)
+			next.ServeHTTP(w, r.WithContext(ctxHTTP))
 		}
 
 		return http.HandlerFunc(handler)

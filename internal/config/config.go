@@ -19,7 +19,7 @@ type Config struct {
 }
 
 type HTTPServer struct {
-	Address         string        `yaml:"address" env-default:"localhost:8080"`
+	Address         string        `yaml:"address" env-default:"localhost:8080" env-required:"true"`
 	ReadTimeout     time.Duration `yaml:"read_timeout" env-default:"5s"`
 	WriteTimeout    time.Duration `yaml:"write_timeout" env-default:"5s"`
 	IdleTimeout     time.Duration `yaml:"idle_timeout" env-default:"60s"`
@@ -31,6 +31,7 @@ type JWT struct {
 	Issuer     string        `yaml:"issuer"`
 	AccessTTL  time.Duration `yaml:"access_ttl" env-default:"15m"`
 	RefreshTTL time.Duration `yaml:"refresh_ttl" env-default:"24h"`
+	Leeway     time.Duration `yaml:"leeway" env-default:"0s"`
 }
 
 type Storage struct {
@@ -40,10 +41,12 @@ type Storage struct {
 }
 
 type Replica struct {
-	URL             string        `yaml:"url"`
-	MinConns        int32         `yaml:"min_conns" env-default:"1"`
-	MaxConns        int32         `yaml:"max_conns" env-default:"1"`
-	MaxConnIdleTime time.Duration `yaml:"idle_timeout" env-default:"30m"`
+	URL          string        `yaml:"url"`
+	MinConns     int32         `yaml:"min_conns" env-default:"1"`
+	MaxConns     int32         `yaml:"max_conns" env-default:"1"`
+	ReadTimeout  time.Duration `yaml:"read_timeout" env-default:"5s"`
+	WriteTimeout time.Duration `yaml:"write_timeout" env-default:"5s"`
+	IdleTimeout  time.Duration `yaml:"idle_timeout" env-default:"30m"`
 }
 
 const (

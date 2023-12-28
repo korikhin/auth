@@ -14,9 +14,10 @@ const (
 )
 
 var (
-	ErrInvalidToken      = errors.New("invalid token")
-	ErrInvalidTokenScope = errors.New("invalid token scope")
-	ErrRoleHeaderMissing = errors.New("required role header missing")
-	ErrTokenMissing      = errors.New("token missing")
-	ErrAccessDenied      = errors.New("denied")
+	ErrTokenMissing      = errors.New("token is missing")
+	ErrTokenInvalid      = errors.New("token is invalid")
+	ErrTokenExpiredOnly  = errors.New("token is expired")
+	ErrTokenInvalidScope = errors.New("token has invalid scope")
+	// ErrRoleHeaderMissing = errors.New("required role header is missing")
+	// ErrAccessDenied      = errors.New("denied")
 )
