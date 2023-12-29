@@ -1,6 +1,9 @@
 package response
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	StatusOK    = "OK"
@@ -20,14 +23,23 @@ func Ok(msg string) Response {
 	}
 }
 
-func Error(msg string, d ...string) Response {
+func Error(msg string, details ...any) Response {
 	r := Response{
 		Status:  StatusError,
 		Message: msg,
 	}
 
-	if len(d) > 0 {
-		r.Details = strings.Join(d, ", ")
+	if len(details) > 0 {
+		m := []string{}
+		for _, d := range details {
+			m = append(m, fmt.Sprint(d))
+		}
+		r.Details = strings.Join(m, ", ")
 	}
+
 	return r
+}
+
+func InternalError() Response {
+	return Error("Internal service error")
 }

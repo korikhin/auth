@@ -33,35 +33,35 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 				return
 			}
 
-			opts := &jwt.ValidationMask{
+			mask := &jwt.ValidationMask{
 				IssuedAt: true,
 				Issuer:   config.Issuer,
 				Leeway:   config.Leeway,
 			}
 
-			claims, errValidation := jwt.Validate(accessToken, jwt.AccessTokenScope, opts)
-			if errValidation != nil && !errors.Is(errValidation, jwt.ErrTokenExpiredOnly) {
-				log.Error("cannot validate token", logger.Error(errValidation))
+			claims, err := jwt.Validate(accessToken, jwt.AccessTokenScope, mask)
+			if err != nil && !errors.Is(err, jwt.ErrTokenExpiredOnly) {
+				log.Error("cannot validate token", logger.Error(err))
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
 
-			ctxStorage, cancel := context.WithTimeout(context.Background(), s.Options.ReadTimeout)
-			defer cancel()
+			if errors.Is(err, jwt.ErrTokenExpiredOnly) {
+				ctxStorage, cancel := context.WithTimeout(context.Background(), s.Options.ReadTimeout)
+				defer cancel()
 
-			userID := claims.Subject
-			user, err := s.User(ctxStorage, userID)
+				userID := claims.Subject
+				user, err := s.User(ctxStorage, userID)
 
-			if err != nil {
-				log.Error(fmt.Sprintf("cannot find user: %s", userID), logger.Error(err))
-				http.Error(w, "User not found", http.StatusInternalServerError)
-				return
-			}
+				if err != nil {
+					log.Error(fmt.Sprintf("cannot find user: %s", userID), logger.Error(err))
+					http.Error(w, "User not found", http.StatusInternalServerError)
+					return
+				}
 
-			// update claims
-			claims.UserRole = user.Role
+				// update claims
+				// claims.UserRole = user.Role
 
-			if errors.Is(errValidation, jwt.ErrTokenExpiredOnly) {
 				refreshToken, err := jwt.GetRefreshToken(r)
 				if err != nil {
 					log.Error("cannot get refresh token", logger.Error(err))
@@ -69,14 +69,14 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 					return
 				}
 
-				opts := &jwt.ValidationMask{
+				mask := &jwt.ValidationMask{
 					IssuedAt: true,
 					Issuer:   claims.Issuer,
 					Subject:  claims.Subject,
 					Leeway:   config.Leeway,
 				}
 
-				if _, err := jwt.Validate(refreshToken, jwt.RefreshTokenScope, opts); err != nil {
+				if _, err := jwt.Validate(refreshToken, jwt.RefreshTokenScope, mask); err != nil {
 					log.Error("cannot validate refresh token", logger.Error(err))
 					http.Error(w, "Invalid token", http.StatusUnauthorized)
 					return

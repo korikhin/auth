@@ -18,7 +18,7 @@ import (
 
 type Claims struct {
 	// UserID     uint64 `json:"uid"`
-	UserRole   string `json:"uro"`
+	// UserRole   string `json:"uro"`
 	TokenScope string `json:"scp"`
 	jwt.RegisteredClaims
 }
@@ -40,34 +40,26 @@ func init() {
 	var err error
 	publicKey, err = secrets.GetPublicKey()
 	if err != nil {
-		panic(fmt.Sprintf("Error loading public key: %v", err))
+		panic(fmt.Sprintf("error loading public key: %v", err))
 	}
 
 	privateKey, err = secrets.GetPrivateKey()
 	if err != nil {
-		panic(fmt.Sprintf("Error loading private key: %v", err))
+		panic(fmt.Sprintf("error loading private key: %v", err))
 	}
 }
 
 func GetAccessToken(r *http.Request) (string, error) {
 	const op = "jwt.GetAccessToken"
 
-	h := strings.TrimSpace(r.Header.Get(httplib.AuthHeader))
-	if h == "" {
-		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
-	}
+	h := r.Header.Get(httplib.AuthHeader)
+	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", AuthHeaderPrefix))
 
-	p := strings.SplitN(h, " ", 2)
-	if len(p) != 2 || p[0] != AuthHeaderPrefix {
+	if !found || b != "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalid)
 	}
 
-	t := p[1]
-	if t == "" {
-		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
-	}
-
-	return t, nil
+	return a, nil
 }
 
 func SetAccessToken(w http.ResponseWriter, token string) {
@@ -114,26 +106,16 @@ func SetRefreshToken(w http.ResponseWriter, token string) error {
 	return nil
 }
 
-func Validate(token, scope string, opts *ValidationMask) (*Claims, error) {
+func Validate(token, scope string, m *ValidationMask) (*Claims, error) {
 	const op = "jwt.Validate"
 
 	t, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return publicKey, nil
-	}, opts.WithOptions()...)
+	}, m.WithOptions()...)
 
 	var isExpiredOnly bool
 	if err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) {
-			if errs, ok := err.(interface{ Unwrap() []error }); ok {
-				claimErrs := errs.Unwrap()[1]
-				if errs, ok = claimErrs.(interface{ Unwrap() []error }); ok {
-					if len(errs.Unwrap()) == 1 {
-						isExpiredOnly = true
-					}
-				}
-			}
-		}
-
+		isExpiredOnly = expiredOnly(err)
 		if !isExpiredOnly {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -170,7 +152,7 @@ func Issue(user *models.User, scope string, config config.JWT) (string, error) {
 
 	c := &Claims{
 		// UserID:     user.ID,
-		UserRole:   user.Role,
+		// UserRole:   user.Role,
 		TokenScope: scope,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
@@ -241,6 +223,20 @@ func (m *ValidationMask) WithOptions() []jwt.ParserOption {
 	}
 
 	return opts
+}
+
+func expiredOnly(err error) bool {
+	if errors.Is(err, jwt.ErrTokenExpired) {
+		if errs, ok := err.(interface{ Unwrap() []error }); ok {
+			claimErrs := errs.Unwrap()[1]
+			if errs, ok = claimErrs.(interface{ Unwrap() []error }); ok {
+				if len(errs.Unwrap()) == 1 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // WARNING: Use for getting expiration time only. Don't validate tokens with this function

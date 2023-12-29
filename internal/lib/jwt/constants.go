@@ -6,11 +6,9 @@ import (
 
 const (
 	AuthHeaderPrefix   = "Bearer"
-	AccessTokenScope   = "access"
-	RefreshTokenScope  = "refresh"
-	refreshTokenCookie = "_rt"
-
-	RoleAdmin = "iam.admin"
+	AccessTokenScope   = "a"
+	RefreshTokenScope  = "r"
+	refreshTokenCookie = "_studopolis.rt"
 )
 
 var (

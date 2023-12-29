@@ -39,14 +39,14 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		}
 		if err != nil {
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Cannot create user"))
+			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
 
 		err = validation.Validate(c)
 		if err != nil {
 			log.Error("bad request", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Bad request", err.Error()))
+			codec.JSONResponse(w, r, response.Error("Bad request", err))
 			return
 		}
 

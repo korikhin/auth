@@ -61,7 +61,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 			}
 
 			log.Error("failed to get user", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Internal server error"))
+			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
 
@@ -74,20 +74,20 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 		refreshToken, err := jwt.Issue(user, jwt.RefreshTokenScope, config)
 		if err != nil {
 			log.Error("cannot issue refresh token", logger.Error(err))
-			http.Error(w, "Cannot issue token", http.StatusInternalServerError)
+			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
 
 		if err = jwt.SetRefreshToken(w, refreshToken); err != nil {
 			log.Error("cannot set refresh token", logger.Error(err))
-			http.Error(w, "Cannot issue token", http.StatusInternalServerError)
+			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
 
 		accessToken, err := jwt.Issue(user, jwt.AccessTokenScope, config)
 		if err != nil {
 			log.Error("cannot issue token", logger.Error(err))
-			http.Error(w, "Cannot issue token", http.StatusInternalServerError)
+			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
 
