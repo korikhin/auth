@@ -11,12 +11,14 @@ const (
 	HeaderContentType     = "Content-Type"
 	HeaderDNT             = "DNT"
 	HeaderIfModifiedSince = "If-Modified-Since"
+	HeaderKeepAlive       = "Keep-Alive"
 	HeaderRange           = "Range"
 	HeaderUserAgent       = "User-Agent"
 
-	// Custom HTTP header for request ID
-	HeaderRequestID = "X-Request-ID"
-	// RequiredRoleHeader = "X-Required-Role"
+	HeaderCustomHeader  = "X-CustomHeader"
+	HeaderRequestedWith = "X-Requested-With"
+	HeaderRequestID     = "X-Request-ID"
+	HeaderRequiredRole  = "X-Required-Role"
 )
 
 // Content types

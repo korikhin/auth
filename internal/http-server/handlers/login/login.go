@@ -14,7 +14,7 @@ import (
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	"github.com/studopolis/auth-server/internal/lib/secrets"
-	stg "github.com/studopolis/auth-server/internal/storage"
+	st "github.com/studopolis/auth-server/internal/storage"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
@@ -49,7 +49,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 
 		user, err := s.UserByEmail(ctx, c.Email)
 		if err != nil {
-			if errors.Is(err, stg.ErrUserNotFound) {
+			if errors.Is(err, st.ErrUserNotFound) {
 				log.Warn("user not found", logger.Error(err))
 				codec.JSONResponse(w, r, response.Error("invalid credentials"))
 				return

@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-// todo: add other attrs
-
 func Component(c string) slog.Attr {
 	return slog.Attr{
 		Key:   "component",

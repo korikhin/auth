@@ -24,7 +24,9 @@ func New(config config.CORS) func(http.Handler) http.Handler {
 			httplib.HeaderContentType,
 			httplib.HeaderDNT,
 			httplib.HeaderIfModifiedSince,
+			httplib.HeaderKeepAlive,
 			httplib.HeaderRange,
+			httplib.HeaderRequestedWith,
 			httplib.HeaderUserAgent,
 		}),
 		handlers.ExposedHeaders([]string{
