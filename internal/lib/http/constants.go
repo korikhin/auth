@@ -5,9 +5,12 @@ import (
 )
 
 const (
-	AuthHeader         = "Authorization"
-	RequestIDHeader    = "X-Request-ID"
-	RequiredRoleHeader = "X-Required-Role"
+	ContentTypeHeader = "Content-Type"
+	AuthHeader        = "Authorization"
+	RequestIDHeader   = "X-Request-ID"
+	// RequiredRoleHeader = "X-Required-Role"
+
+	ContentTypeJSON = "application/json"
 )
 
 var (

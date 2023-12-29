@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/studopolis/auth-server/internal/lib/api"
-
 	"github.com/go-playground/validator/v10"
 )
 
-func Validate(c *api.Credentials) error {
+type Credentials struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+func Validate(c *Credentials) error {
 	if err := validator.New().Struct(c); err != nil {
 		errs := err.(validator.ValidationErrors)
 		return formatErrors(errs)

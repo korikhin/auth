@@ -8,21 +8,16 @@ import (
 	"net/http"
 
 	"github.com/studopolis/auth-server/internal/config"
-	"github.com/studopolis/auth-server/internal/lib/api"
 	"github.com/studopolis/auth-server/internal/lib/api/response"
+	"github.com/studopolis/auth-server/internal/lib/api/validation"
 	"github.com/studopolis/auth-server/internal/lib/http/codec"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
+	"github.com/studopolis/auth-server/internal/lib/secrets"
 	stg "github.com/studopolis/auth-server/internal/storage"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
-
-	"golang.org/x/crypto/bcrypt"
-)
-
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
 func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
@@ -34,7 +29,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 			logger.RequestID(requestMiddleware.GetID(r.Context())),
 		)
 
-		c := &api.Credentials{}
+		c := &validation.Credentials{}
 
 		err := codec.DecodeJSON(r.Body, c)
 		if err != nil {
@@ -65,7 +60,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 			return
 		}
 
-		if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(c.Password)); err != nil {
+		if err = secrets.CompareHashAndPassword(user.PasswordHash, c.Password); err != nil {
 			log.Info("invalid credentials", logger.Error(err))
 			codec.JSONResponse(w, r, response.Error("Invalid credentials"))
 			return

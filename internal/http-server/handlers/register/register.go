@@ -8,16 +8,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/lib/api"
 	"github.com/studopolis/auth-server/internal/lib/api/response"
 	"github.com/studopolis/auth-server/internal/lib/api/validation"
 	"github.com/studopolis/auth-server/internal/lib/http/codec"
 	"github.com/studopolis/auth-server/internal/lib/logger"
+	"github.com/studopolis/auth-server/internal/lib/secrets"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 func New(log *slog.Logger, s *storage.Storage) http.Handler {
@@ -29,15 +27,16 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 			logger.RequestID(requestMiddleware.GetID(r.Context())),
 		)
 
-		c := &api.Credentials{}
+		c := &validation.Credentials{}
 
 		err := codec.DecodeJSON(r.Body, c)
-		if errors.Is(err, io.EOF) {
-			log.Error("request body is empty")
-			codec.JSONResponse(w, r, response.Error("Request body is empty"))
-			return
-		}
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Error("request body is empty")
+				codec.JSONResponse(w, r, response.Error("Request body is empty"))
+				return
+			}
+
 			log.Error("failed to decode request body", logger.Error(err))
 			codec.JSONResponse(w, r, response.InternalError())
 			return
@@ -51,7 +50,7 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		}
 
 		// use cost <= bcrypt.DefaultCost
-		hash, err := bcrypt.GenerateFromPassword([]byte(c.Password), bcrypt.MinCost)
+		hash, err := secrets.GenerateFromPassword(c.Password)
 		if err != nil {
 			log.Error("failed to create password hash", logger.Error(err))
 			codec.JSONResponse(w, r, response.Error("Cannot create user"))
