@@ -34,21 +34,23 @@ func init() {
 	prefix = fmt.Sprintf("%s/%s", hostname, b64[0:10])
 }
 
-func RequestID(next http.Handler) http.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		requestID := r.Header.Get(httplib.RequestIDHeader)
+func New() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			requestID := r.Header.Get(httplib.HeaderRequestID)
 
-		if requestID == "" {
-			myID := atomic.AddUint64(&reqID, 1)
-			requestID = fmt.Sprintf("%s-%06d", prefix, myID)
+			if requestID == "" {
+				myID := atomic.AddUint64(&reqID, 1)
+				requestID = fmt.Sprintf("%s-%06d", prefix, myID)
+			}
+
+			ctx = context.WithValue(ctx, httplib.RequestCtxKey, requestID)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 
-		ctx = context.WithValue(ctx, httplib.RequestCtxKey, requestID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		return http.HandlerFunc(handler)
 	}
-
-	return http.HandlerFunc(handler)
 }
 
 func GetID(ctx context.Context) string {

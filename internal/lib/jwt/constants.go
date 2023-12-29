@@ -5,9 +5,9 @@ import (
 )
 
 const (
-	AuthHeaderPrefix   = "Bearer"
-	AccessTokenScope   = "a"
-	RefreshTokenScope  = "r"
+	HeaderAuthPrefix   = "Bearer"
+	ScopeAccess        = "a"
+	ScopeRefresh       = "r"
 	refreshTokenCookie = "_studopolis.rt"
 )
 

@@ -1,4 +1,8 @@
 env: "local"
+cors:
+  allowed_origins:
+    - "https://studopolis.ru"
+  max_age: 600
 http_server:
   address: "localhost:8080"
   read_timeout: 5s
@@ -13,6 +17,6 @@ jwt:
   leeway: 2s
 storage:
   alpha:
-    url: postgres://auth:auth@localhost:5432/postgres
+    url: "postgres://auth:auth@localhost:5432/postgres"
     read_timeout: 5s
     write_timeout: 5s

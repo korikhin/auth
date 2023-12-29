@@ -35,12 +35,12 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
-				codec.JSONResponse(w, r, response.Error("Request body is empty"))
+				codec.JSONResponse(w, r, response.Error("request body is empty"))
 				return
 			}
 
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Cannot create user"))
+			codec.JSONResponse(w, r, response.Error("cannot create user"))
 			return
 		}
 
@@ -51,7 +51,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 		if err != nil {
 			if errors.Is(err, stg.ErrUserNotFound) {
 				log.Warn("user not found", logger.Error(err))
-				codec.JSONResponse(w, r, response.Error("Invalid credentials"))
+				codec.JSONResponse(w, r, response.Error("invalid credentials"))
 				return
 			}
 
@@ -62,11 +62,11 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 
 		if err = secrets.CompareHashAndPassword(user.PasswordHash, c.Password); err != nil {
 			log.Info("invalid credentials", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Invalid credentials"))
+			codec.JSONResponse(w, r, response.Error("invalid credentials"))
 			return
 		}
 
-		refreshToken, err := jwt.Issue(user, jwt.RefreshTokenScope, config)
+		refreshToken, err := jwt.Issue(user, jwt.ScopeRefresh, config)
 		if err != nil {
 			log.Error("cannot issue refresh token", logger.Error(err))
 			codec.JSONResponse(w, r, response.InternalError())
@@ -79,7 +79,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 			return
 		}
 
-		accessToken, err := jwt.Issue(user, jwt.AccessTokenScope, config)
+		accessToken, err := jwt.Issue(user, jwt.ScopeAccess, config)
 		if err != nil {
 			log.Error("cannot issue token", logger.Error(err))
 			codec.JSONResponse(w, r, response.InternalError())
@@ -88,7 +88,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 
 		jwt.SetAccessToken(w, accessToken)
 
-		response := response.Ok("User logged in successfully")
+		response := response.Ok("user logged in successfully")
 		codec.JSONResponse(w, r, response)
 	}
 

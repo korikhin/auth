@@ -33,7 +33,7 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
-				codec.JSONResponse(w, r, response.Error("Request body is empty"))
+				codec.JSONResponse(w, r, response.Error("request body is empty"))
 				return
 			}
 
@@ -45,7 +45,7 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		err = validation.Validate(c)
 		if err != nil {
 			log.Error("bad request", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Bad request", err))
+			codec.JSONResponse(w, r, response.Error("bad request", err))
 			return
 		}
 
@@ -53,7 +53,7 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		hash, err := secrets.GenerateFromPassword(c.Password)
 		if err != nil {
 			log.Error("failed to create password hash", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Cannot create user"))
+			codec.JSONResponse(w, r, response.Error("cannot create user"))
 			return
 		}
 
@@ -63,11 +63,11 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		userID, err := s.SaveUser(ctx, c.Email, hash)
 		if err != nil {
 			log.Error("failed to register the user", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("Cannot create user"))
+			codec.JSONResponse(w, r, response.Error("cannot create user"))
 			return
 		}
 
-		response := response.Ok(fmt.Sprintf("User successfully created with ID: %d", userID))
+		response := response.Ok(fmt.Sprintf("user successfully created with ID: %d", userID))
 		codec.JSONResponse(w, r, response)
 	}
 

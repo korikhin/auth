@@ -26,16 +26,11 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				logger.RequestID(requestMiddleware.GetID(r.Context())),
 			)
 
-			log.Info(
-				"starting",
-			)
+			log.Info("starting")
 
 			tic := time.Now()
 			defer func() {
-				log.Info(
-					"completed",
-					logger.Duration(time.Since(tic)),
-				)
+				log.Info("completed", logger.Duration(time.Since(tic)))
 			}()
 
 			next.ServeHTTP(w, r)

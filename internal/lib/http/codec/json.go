@@ -18,7 +18,7 @@ func JSONResponse(w http.ResponseWriter, r *http.Request, v interface{}) {
 		return
 	}
 
-	w.Header().Set(httplib.ContentTypeHeader, httplib.ContentTypeJSON)
+	w.Header().Set(httplib.HeaderContentType, httplib.ContentTypeJSON)
 	if status, ok := r.Context().Value(httplib.StatusCtxKey).(int); ok {
 		w.WriteHeader(status)
 	}

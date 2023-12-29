@@ -13,6 +13,7 @@ import (
 
 	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/http-server/handlers"
+	"github.com/studopolis/auth-server/internal/lib/http/cors"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
@@ -41,8 +42,13 @@ func main() {
 	// router setup
 	router := mux.NewRouter()
 
+	// CORS
+	cors := cors.New(config.HTTPServer.CORS)
+	router.Use(cors)
+
 	// middleware
-	router.Use(requestMiddleware.RequestID)
+	requestMiddleware := requestMiddleware.New()
+	router.Use(requestMiddleware)
 
 	logMiddleware := logMiddleware.New(log)
 	router.Use(logMiddleware)

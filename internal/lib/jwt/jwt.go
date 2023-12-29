@@ -52,8 +52,8 @@ func init() {
 func GetAccessToken(r *http.Request) (string, error) {
 	const op = "jwt.GetAccessToken"
 
-	h := r.Header.Get(httplib.AuthHeader)
-	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", AuthHeaderPrefix))
+	h := r.Header.Get(httplib.HeaderAuth)
+	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", HeaderAuthPrefix))
 
 	if !found || b != "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalid)
@@ -65,8 +65,8 @@ func GetAccessToken(r *http.Request) (string, error) {
 func SetAccessToken(w http.ResponseWriter, token string) {
 	// const op = "jwt.SetAccessToken"
 
-	h := fmt.Sprintf("%s %s", AuthHeaderPrefix, token)
-	w.Header().Set(httplib.AuthHeader, h)
+	h := fmt.Sprintf("%s %s", HeaderAuthPrefix, token)
+	w.Header().Set(httplib.HeaderAuth, h)
 }
 
 func GetRefreshToken(r *http.Request) (string, error) {
@@ -142,9 +142,9 @@ func Issue(user *models.User, scope string, config config.JWT) (string, error) {
 	var ttl time.Duration
 
 	switch scope {
-	case AccessTokenScope:
+	case ScopeAccess:
 		ttl = config.AccessTTL
-	case RefreshTokenScope:
+	case ScopeRefresh:
 		ttl = config.RefreshTTL
 	default:
 		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)

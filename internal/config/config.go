@@ -25,6 +25,12 @@ type HTTPServer struct {
 	IdleTimeout     time.Duration `yaml:"idle_timeout" env-default:"60s"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env-default:"10s"`
 	HealthTimeout   time.Duration `yaml:"health_timeout" env-default:"1s"`
+	CORS            `yaml:"cors"`
+}
+
+type CORS struct {
+	AllowedOrigins []string `yaml:"allowed_origins"`
+	MaxAge         int      `yaml:"max_age"`
 }
 
 type JWT struct {

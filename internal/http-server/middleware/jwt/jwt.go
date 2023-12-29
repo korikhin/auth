@@ -18,11 +18,13 @@ import (
 
 func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http.Handler) http.Handler {
 	log.Info("jwt middleware enabled")
+	log = log.With(
+		logger.Component("middleware/jwt"),
+	)
 
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
-			log = log.With(
-				logger.Component("middleware/jwt"),
+			log := log.With(
 				logger.RequestID(requestMiddleware.GetID(r.Context())),
 			)
 
@@ -39,7 +41,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 				Leeway:   config.Leeway,
 			}
 
-			claims, err := jwt.Validate(accessToken, jwt.AccessTokenScope, mask)
+			claims, err := jwt.Validate(accessToken, jwt.ScopeAccess, mask)
 			if err != nil && !errors.Is(err, jwt.ErrTokenExpiredOnly) {
 				log.Error("cannot validate token", logger.Error(err))
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
@@ -76,13 +78,13 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 					Leeway:   config.Leeway,
 				}
 
-				if _, err := jwt.Validate(refreshToken, jwt.RefreshTokenScope, mask); err != nil {
+				if _, err := jwt.Validate(refreshToken, jwt.ScopeRefresh, mask); err != nil {
 					log.Error("cannot validate refresh token", logger.Error(err))
 					http.Error(w, "Invalid token", http.StatusUnauthorized)
 					return
 				}
 
-				refreshToken, err = jwt.Issue(user, jwt.RefreshTokenScope, config)
+				refreshToken, err = jwt.Issue(user, jwt.ScopeRefresh, config)
 				if err != nil {
 					log.Error("cannot issue refresh token", logger.Error(err))
 					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
@@ -95,7 +97,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 					return
 				}
 
-				accessToken, err = jwt.Issue(user, jwt.AccessTokenScope, config)
+				accessToken, err = jwt.Issue(user, jwt.ScopeAccess, config)
 				if err != nil {
 					log.Error("cannot issue token", logger.Error(err))
 					http.Error(w, "Cannot issue token", http.StatusInternalServerError)

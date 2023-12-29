@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	StatusOK    = "OK"
-	StatusError = "Error"
+	StatusOK    = "ok"
+	StatusError = "error"
 )
 
 type Response struct {
@@ -41,5 +41,5 @@ func Error(msg string, details ...any) Response {
 }
 
 func InternalError() Response {
-	return Error("Internal service error")
+	return Error("internal server error")
 }
