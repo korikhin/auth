@@ -18,6 +18,7 @@
 
 # Folders
 !deployment/**
+!tests/**
 
 # !Makefile
 
