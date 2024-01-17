@@ -1,15 +1,15 @@
 *
 
 # General
-!.github/
+!.github/**
 !.gitignore
 !.gitkeep
 !README.md
 !LICENSE
 
 # Configs
-# !config/prod.yaml
-# !config/*.example.yaml
+!config/prod.yaml
+!config/*.example.yaml
 
 # Go
 !*.go
