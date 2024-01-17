@@ -12,9 +12,9 @@ jobs:
   deployment:
     runs-on: ubuntu-latest
     env:
-      HOST: "${{ secrets.USER }}@${{ secrets.HOST }}"
-      DEPLOY_DIRECTORY: "/${{ secrets.USER }}/apps/auth"
-      CONFIG_PATH: "/${{ secrets.USER }}/apps/auth/config/prod.yaml"
+      HOST: ${{ secrets.HOST }}
+      DEPLOY_DIRECTORY: "/root/apps/auth"
+      CONFIG_PATH: "/root/apps/auth/config/prod.yaml"
 
     steps:
       - name: "Checkout repository"
