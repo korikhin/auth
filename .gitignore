@@ -1,19 +1,24 @@
-# Ignore everything
 *
 
-# But not these files...
-!/.gitignore
+# General
+!.github/**
+!.gitignore
 !.gitkeep
+!README.md
+!LICENSE
 
+# Configs
+!config/prod.yaml
+!config/*.example.yaml
+
+# Go
 !*.go
 !go.sum
 !go.mod
 
-!config/*.yaml
-!README.md
-!LICENSE
+# Folders
+!deployment/**
 
 # !Makefile
 
-# ...even if they are in subdirectories
 !*/

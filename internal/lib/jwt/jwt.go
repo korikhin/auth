@@ -32,20 +32,22 @@ type ValidationMask struct {
 }
 
 var (
-	publicKey  interface{}
 	privateKey interface{}
+	publicKey  interface{}
 )
 
 func init() {
-	var err error
-	publicKey, err = secrets.GetPublicKey()
-	if err != nil {
-		panic(fmt.Sprintf("error loading public key: %v", err))
-	}
+	keys := secrets.MustLoadKeys()
 
-	privateKey, err = secrets.GetPrivateKey()
+	var err error
+	privateKey, err = secrets.GetPrivateKey(keys.Private)
 	if err != nil {
 		panic(fmt.Sprintf("error loading private key: %v", err))
+	}
+
+	publicKey, err = secrets.GetPublicKey(keys.Public)
+	if err != nil {
+		panic(fmt.Sprintf("error loading public key: %v", err))
 	}
 }
 
@@ -53,7 +55,7 @@ func GetAccessToken(r *http.Request) (string, error) {
 	const op = "jwt.GetAccessToken"
 
 	h := r.Header.Get(httplib.HeaderAuth)
-	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", HeaderAuthPrefix))
+	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", headerAuthPrefix))
 
 	if !found || b != "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalid)
@@ -65,7 +67,7 @@ func GetAccessToken(r *http.Request) (string, error) {
 func SetAccessToken(w http.ResponseWriter, token string) {
 	// const op = "jwt.SetAccessToken"
 
-	h := fmt.Sprintf("%s %s", HeaderAuthPrefix, token)
+	h := fmt.Sprintf("%s %s", headerAuthPrefix, token)
 	w.Header().Set(httplib.HeaderAuth, h)
 }
 
@@ -73,16 +75,11 @@ func GetRefreshToken(r *http.Request) (string, error) {
 	const op = "jwt.GetRefreshToken"
 
 	c, err := r.Cookie(refreshTokenCookie)
-	if err != nil {
+	if err != nil || strings.TrimSpace(c.Value) == "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
 	}
 
-	t := strings.TrimSpace(c.Value)
-	if t == "" {
-		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
-	}
-
-	return t, nil
+	return c.Value, nil
 }
 
 func SetRefreshToken(w http.ResponseWriter, token string) error {

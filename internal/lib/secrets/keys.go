@@ -6,19 +6,41 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+
+	"github.com/studopolis/auth-server/internal/config"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
+
+type Keys struct {
+	Private string `yaml:"jwt.keys.private"`
+	Public  string `yaml:"jwt.keys.public"`
+}
 
 const (
-	keyTypePublic  string = "PUBLIC KEY"
-	keyTypePrivate string = "EC PRIVATE KEY"
+	keyTypePrivate = "EC PRIVATE KEY"
+	keyTypePublic  = "PUBLIC KEY"
 )
 
-func GetPrivateKey() (*ecdsa.PrivateKey, error) {
-	path := os.Getenv("PRIVATE_KEY_PATH")
+func MustLoadKeys() *Keys {
+	path := config.FetchConfigPath()
 	if path == "" {
-		return nil, fmt.Errorf("PRIVATE_KEY_PATH is not set")
+		panic("config is not set")
 	}
 
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		panic(fmt.Sprintf("config file does not exist: %s", path))
+	}
+
+	var keys Keys
+	if err := cleanenv.ReadConfig(path, &keys); err != nil {
+		panic(fmt.Sprintf("failed to read config: %v", err))
+	}
+
+	return &keys
+}
+
+func GetPrivateKey(path string) (*ecdsa.PrivateKey, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read private key file")
@@ -37,12 +59,7 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 	return key, nil
 }
 
-func GetPublicKey() (*ecdsa.PublicKey, error) {
-	path := os.Getenv("PUBLIC_KEY_PATH")
-	if path == "" {
-		return nil, fmt.Errorf("PUBLIC_KEY_PATH is not set")
-	}
-
+func GetPublicKey(path string) (*ecdsa.PublicKey, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read public key file")

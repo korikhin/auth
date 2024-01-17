@@ -1,4 +1,4 @@
-env: "local"
+env: "prod"
 cors:
   allowed_origins:
     - "https://studopolis.ru"
@@ -14,9 +14,9 @@ jwt:
   keys:
     public: "/keys/public.pem"
     private: "/keys/private.pem"
-  issuer: "Studopolis Authorization"
-  access_ttl: 10m
-  refresh_ttl: 60m
+  issuer: "Studopolis Authentication"
+  access_ttl: 15m
+  refresh_ttl: 24h
   leeway: 2s
 storage:
   alpha:

@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	HeaderAuthPrefix   = "Bearer"
+	headerAuthPrefix   = "Bearer"
 	ScopeAccess        = "a"
 	ScopeRefresh       = "r"
 	refreshTokenCookie = "_studopolis.rt"

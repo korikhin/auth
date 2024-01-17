@@ -49,7 +49,6 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 			return
 		}
 
-		// use cost <= bcrypt.DefaultCost
 		hash, err := secrets.GenerateFromPassword(c.Password)
 		if err != nil {
 			log.Error("failed to create password hash", logger.Error(err))
