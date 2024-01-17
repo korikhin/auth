@@ -11,9 +11,6 @@ http_server:
   shutdown_timeout: 10s
   health_timeout: 1s
 jwt:
-  keys:
-    public: "/keys/public.pem"
-    private: "/keys/private.pem"
   issuer: Issuer
   access_ttl: 15m
   refresh_ttl: 24h

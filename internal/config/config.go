@@ -62,13 +62,13 @@ const (
 )
 
 func MustLoad() *Config {
-	path := FetchConfigPath()
+	path := fetchConfigPath()
 	if path == "" {
 		panic("config is not set")
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		panic(fmt.Sprintf("config file does not exist: %s", path))
+		panic(fmt.Sprintf("config file does not exist: \"%s\"", path))
 	}
 
 	var config Config
@@ -79,7 +79,7 @@ func MustLoad() *Config {
 	return &config
 }
 
-func FetchConfigPath() string {
+func fetchConfigPath() string {
 	var path string
 
 	flag.StringVar(&path, "config", "", "path to config file")

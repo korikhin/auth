@@ -37,15 +37,13 @@ var (
 )
 
 func init() {
-	keys := secrets.MustLoadKeys()
-
 	var err error
-	privateKey, err = secrets.GetPrivateKey(keys.Private)
+	privateKey, err = secrets.GetPrivateKey()
 	if err != nil {
 		panic(fmt.Sprintf("error loading private key: %v", err))
 	}
 
-	publicKey, err = secrets.GetPublicKey(keys.Public)
+	publicKey, err = secrets.GetPublicKey()
 	if err != nil {
 		panic(fmt.Sprintf("error loading public key: %v", err))
 	}
