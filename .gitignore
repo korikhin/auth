@@ -1,9 +1,10 @@
 *
 
 # General
-!.github/**
-!.gitignore
+!.github/
+!/.gitignore
 !.gitkeep
+
 !README.md
 !LICENSE
 
