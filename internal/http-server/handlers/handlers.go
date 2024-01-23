@@ -13,6 +13,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func NewRouter() *mux.Router {
+	return mux.NewRouter()
+}
+
 func Public(r *mux.Router, log *slog.Logger, s *storage.Storage, config config.Config) {
 	register := register.New(log, s)
 	r.Handle("/users", register).Methods(http.MethodPost)

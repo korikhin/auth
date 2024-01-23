@@ -1,0 +1,37 @@
+replicaCount: 1
+
+# image:
+#   repository: your-image-repository
+#   pullPolicy: IfNotPresent
+#   tag: latest
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+app:
+  configPath: "config/prod.yaml"
+  env: "prod"
+  cors:
+    allowedOrigins:
+      - "https://studopolis.ru"
+    maxAge: 600
+  httpServer:
+    address: "localhost:8080"
+    readTimeout: "5s"
+    writeTimeout: "5s"
+    idleTimeout: "60s"
+    shutdownTimeout: "10s"
+    healthTimeout: "1s"
+  jwt:
+    issuer: "Studopolis Authentication"
+    accessTTL: "10m"
+    refreshTTL: "60m"
+    leeway: "2s"
+  storage:
+      url: "postgres://auth:0000@db-postgresql:5432/master"
+      readTimeout: "5s"
+      writeTimeout: "5s"

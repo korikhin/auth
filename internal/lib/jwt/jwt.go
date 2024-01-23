@@ -184,8 +184,8 @@ func (c Claims) Validate() error {
 		return jwt.ErrTokenRequiredClaimMissing
 	}
 
-	// if type of Subject changes in the future (e.g. UUID)
-	// just use: if c.Subject == "" { return jwt.ErrTokenRequiredClaimMissing }
+	// If type of Subject changes in the future (e.g. UUID)
+	// use: if c.Subject == "" { return jwt.ErrTokenRequiredClaimMissing }
 	// or other checks if needed
 	if _, err := strconv.ParseUint(c.Subject, 10, 64); err != nil {
 		return jwt.ErrTokenInvalidSubject
@@ -234,7 +234,9 @@ func expiredOnly(err error) bool {
 	return false
 }
 
-// WARNING: Use for getting expiration time only. Don't validate tokens with this function
+// WARNING:
+// Use for getting expiration time only.
+// Don't use this function for validation
 func getExpirationTime(token string) (time.Time, error) {
 	const op = "jwt.tokenExpiration"
 

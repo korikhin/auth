@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	cost int = 7
+	cost = 7
 )
 
 func GenerateFromPassword(p string) ([]byte, error) {

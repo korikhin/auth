@@ -14,11 +14,15 @@
 
 # Go
 !*.go
-!go.sum
 !go.mod
+!go.sum
+
+# Docker
+!Dockerfile
 
 # Folders
 !deployment/**
+!helm/**
 
 # !Makefile
 

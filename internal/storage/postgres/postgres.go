@@ -39,15 +39,15 @@ func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	const op = "storage.postgres.New"
 
 	poolOnce.Do(func() {
-		poolConfig, err := pgxpool.ParseConfig(config.Alpha.URL)
+		poolConfig, err := pgxpool.ParseConfig(config.URL)
 		if err != nil {
 			poolErr = fmt.Errorf("%s: %w", op, err)
 			return
 		}
 
-		poolConfig.MinConns = config.Alpha.MinConns
-		poolConfig.MaxConns = config.Alpha.MaxConns
-		poolConfig.MaxConnIdleTime = config.Alpha.IdleTimeout
+		poolConfig.MinConns = config.MinConns
+		poolConfig.MaxConns = config.MaxConns
+		poolConfig.MaxConnIdleTime = config.IdleTimeout
 
 		pool, err = pgxpool.NewWithConfig(ctx, poolConfig)
 		if err != nil {
@@ -61,8 +61,8 @@ func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	}
 
 	opts := &Options{
-		ReadTimeout:  config.Alpha.ReadTimeout,
-		WriteTimeout: config.Alpha.WriteTimeout,
+		ReadTimeout:  config.ReadTimeout,
+		WriteTimeout: config.WriteTimeout,
 	}
 
 	return &Storage{pool: pool, Options: *opts}, nil

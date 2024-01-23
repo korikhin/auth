@@ -11,15 +11,15 @@ func New(env config.EnvType) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
-	case config.EnvLocal:
+	case config.Local:
 		log = slog.New(
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
-	case config.EnvDev:
+	case config.Dev:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
-	case config.EnvProd:
+	case config.Prod:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)

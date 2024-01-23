@@ -1,4 +1,4 @@
-# systemd config
+# Config for `systemd`
 
 [Unit]
 Description=Authentication Service

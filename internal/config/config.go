@@ -1,93 +1,138 @@
 package config
 
 import (
-	"flag"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/structs"
 )
 
 type EnvType string
 
 type Config struct {
-	Env        EnvType `yaml:"env" env-default:"local" env-required:"true"`
-	HTTPServer `yaml:"http_server"`
-	JWT        `yaml:"jwt"`
-	Storage    `yaml:"storage"`
+	Env        EnvType `yaml:"env" koanf:"env"`
+	CORS       `yaml:"cors" koanf:"cors"`
+	HTTPServer `yaml:"http-server" koanf:"http-server"`
+	JWT        `yaml:"jwt" koanf:"jwt"`
+	Storage    `yaml:"storage" koanf:"storage"`
 }
 
 type HTTPServer struct {
-	Address         string        `yaml:"address" env-default:"localhost:8080" env-required:"true"`
-	ReadTimeout     time.Duration `yaml:"read_timeout" env-default:"5s"`
-	WriteTimeout    time.Duration `yaml:"write_timeout" env-default:"5s"`
-	IdleTimeout     time.Duration `yaml:"idle_timeout" env-default:"60s"`
-	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env-default:"10s"`
-	HealthTimeout   time.Duration `yaml:"health_timeout" env-default:"1s"`
-	CORS            `yaml:"cors"`
+	Address         string        `yaml:"address" koanf:"address"`
+	ReadTimeout     time.Duration `yaml:"read-timeout" koanf:"read-timeout"`
+	WriteTimeout    time.Duration `yaml:"write-timeout" koanf:"write-timeout"`
+	IdleTimeout     time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
+	ShutdownTimeout time.Duration `yaml:"shutdown-timeout" koanf:"shutdown-timeout"`
+	HealthTimeout   time.Duration `yaml:"health-timeout" koanf:"health-timeout"`
 }
 
 type CORS struct {
-	AllowedOrigins []string `yaml:"allowed_origins"`
-	MaxAge         int      `yaml:"max_age"`
+	AllowedOrigins []string `yaml:"allowed-origins" koanf:"allowed-origins"`
+	MaxAge         int      `yaml:"max-age" koanf:"max-age"`
 }
 
 type JWT struct {
-	Issuer     string        `yaml:"issuer"`
-	AccessTTL  time.Duration `yaml:"access_ttl" env-default:"15m"`
-	RefreshTTL time.Duration `yaml:"refresh_ttl" env-default:"24h"`
-	Leeway     time.Duration `yaml:"leeway" env-default:"0s"`
+	Issuer     string        `yaml:"issuer" koanf:"issuer"`
+	AccessTTL  time.Duration `yaml:"access-ttl" koanf:"access-ttl"`
+	RefreshTTL time.Duration `yaml:"refresh-ttl" koanf:"refresh-ttl"`
+	Leeway     time.Duration `yaml:"leeway" koanf:"leeway"`
 }
 
 type Storage struct {
-	Alpha Replica `yaml:"alpha"` // master
-	Beta  Replica `yaml:"beta"`
-	Gamma Replica `yaml:"gamma"`
+	URL          string        `yaml:"url" koanf:"url"`
+	MinConns     int32         `yaml:"min-conns" koanf:"min-conns"`
+	MaxConns     int32         `yaml:"max-conns" koanf:"max-conns"`
+	ReadTimeout  time.Duration `yaml:"read-timeout" koanf:"read-timeout"`
+	WriteTimeout time.Duration `yaml:"write-timeout" koanf:"write-timeout"`
+	IdleTimeout  time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
 }
 
-type Replica struct {
-	URL          string        `yaml:"url"`
-	MinConns     int32         `yaml:"min_conns" env-default:"1"`
-	MaxConns     int32         `yaml:"max_conns" env-default:"1"`
-	ReadTimeout  time.Duration `yaml:"read_timeout" env-default:"5s"`
-	WriteTimeout time.Duration `yaml:"write_timeout" env-default:"5s"`
-	IdleTimeout  time.Duration `yaml:"idle_timeout" env-default:"30m"`
-}
-
+// Developing environment
 const (
-	EnvLocal EnvType = "local"
-	EnvDev   EnvType = "dev"
-	EnvProd  EnvType = "prod"
+	Local EnvType = "local"
+	Dev   EnvType = "dev"
+	Prod  EnvType = "prod"
 )
 
-func MustLoad() *Config {
-	path := fetchConfigPath()
+const (
+	DefaultConfigPath = "config/local.yaml"
+	DefultEnvPrefix   = "STD_AUTH__"
+	EnvConfigPath     = "CONFIG_PATH"
+	TagKoanf          = "koanf"
+)
+
+func MustLoad(path string) *Config {
+	k := koanf.New(".")
+
 	if path == "" {
-		panic("config is not set")
+		path = os.Getenv(fmt.Sprintf("%s%s", DefultEnvPrefix, EnvConfigPath))
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		panic(fmt.Sprintf("config file does not exist: \"%s\"", path))
+	var isDefault bool
+	if path == "" {
+		path = DefaultConfigPath
+		isDefault = true
 	}
 
-	var config Config
-	if err := cleanenv.ReadConfig(path, &config); err != nil {
-		panic(fmt.Sprintf("failed to read config: %v", err))
+	cfg := Default()
+	if err := k.Load(structs.Provider(cfg, TagKoanf), nil); err != nil {
+		log.Fatalf("error setting default config values: %v", err)
 	}
 
-	return &config
+	if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
+		if isDefault {
+			log.Fatalf("error loading default config: %v", err)
+		}
+		log.Fatalf("error loading config: %v", err)
+	}
+
+	if err := k.Load(env.Provider(DefultEnvPrefix, ".", ParseEnvVariable), nil); err != nil {
+		log.Fatalf("error loading config: %v", err)
+	}
+
+	if err := k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: TagKoanf}); err != nil {
+		log.Fatalf("error unmarshaling config: %v", err)
+	}
+
+	return cfg
 }
 
-func fetchConfigPath() string {
-	var path string
+func ParseEnvVariable(s string) string {
+	s = strings.TrimPrefix(s, DefultEnvPrefix)
+	s = strings.Replace(s, "__", ".", -1)
+	s = strings.Replace(s, "_", "-", -1)
+	return strings.ToLower(s)
+}
 
-	flag.StringVar(&path, "config", "", "path to config file")
-	flag.Parse()
-
-	if path == "" {
-		path = os.Getenv("CONFIG_PATH")
+func Default() *Config {
+	return &Config{
+		Env: Local,
+		HTTPServer: HTTPServer{
+			Address:         "localhost:8080",
+			ReadTimeout:     5 * time.Second,
+			WriteTimeout:    5 * time.Second,
+			IdleTimeout:     60 * time.Second,
+			ShutdownTimeout: 10 * time.Second,
+			HealthTimeout:   1 * time.Second,
+		},
+		JWT: JWT{
+			AccessTTL:  15 * time.Minute,
+			RefreshTTL: 24 * time.Hour,
+			Leeway:     0 * time.Second,
+		},
+		Storage: Storage{
+			MinConns:     1,
+			MaxConns:     1,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			IdleTimeout:  30 * time.Minute,
+		},
 	}
-
-	return path
 }

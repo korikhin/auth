@@ -61,7 +61,7 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 					return
 				}
 
-				// update claims
+				// Update claims
 				// claims.UserRole = user.Role
 
 				refreshToken, err := jwt.GetRefreshToken(r)

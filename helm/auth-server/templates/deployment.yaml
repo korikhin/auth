@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "authServer.fullname" . }}
+  labels:
+    {{- include "authServer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "authServer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "authServer.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            env:
+              - name: STD_AUTH__CONFIG_PATH
+                value: {{ .Values.app.configPath }}
+              - name: STD_AUTH__ENV
+                value: {{ .Values.app.env }}
+              - name: STD_AUTH__CORS__ALLOWED_ORIGINS
+                value: {{ .Values.app.cors.allowedOrigins | join "," }}
+              - name: STD_AUTH__CORS__MAX_AGE
+                value: {{ .Values.app.cors.maxAge }}
+              - name: STD_AUTH__HTTP_SERVER__ADDRESS
+                value: {{ .Values.app.httpServer.address }}
+              - name: STD_AUTH__HTTP_SERVER__READ_TIMEOUT
+                value: {{ .Values.app.httpServer.readTimeout }}
+              - name: STD_AUTH__HTTP_SERVER__WRITE_TIMEOUT
+                value: {{ .Values.app.httpServer.writeTimeout }}
+              - name: STD_AUTH__HTTP_SERVER__IDLE_TIMEOUT
+                value: {{ .Values.app.httpServer.idleTimeout }}
+              - name: STD_AUTH__HTTP_SERVER__SHUTDOWN_TIMEOUT
+                value: {{ .Values.app.httpServer.shutdownTimeout }}
+              - name: STD_AUTH__HTTP_SERVER__HEALTH_TIMEOUT
+                value: {{ .Values.app.httpServer.healthTimeout }}
+              - name: STD_AUTH__JWT__ISSUER
+                value: {{ .Values.app.jwt.issuer }}
+              - name: STD_AUTH__JWT__ACCESS_TTL
+                value: {{ .Values.app.jwt.accessTTL }}
+              - name: STD_AUTH__JWT__REFRESH_TTL
+                value: {{ .Values.app.jwt.refreshTTL }}
+              - name: STD_AUTH__JWT__LEEWAY
+                value: {{ .Values.app.jwt.leeway }}
+              - name: STD_AUTH__STORAGE__URL
+                value: {{ .Values.app.storage.url }}
+              - name: STD_AUTH__STORAGE__READ_TIMEOUT
+                value: {{ .Values.app.storage.readTimeout }}
+              - name: STD_AUTH__STORAGE__WRITE_TIMEOUT
+                value: {{ .Values.app.storage.writeTimeout }}
