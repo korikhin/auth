@@ -1,0 +1,10 @@
+*
+
+# Go
+!go.mod
+!go.sum
+
+# Folders
+!src/
+
+!*/

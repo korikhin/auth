@@ -8,11 +8,10 @@ import (
 	"os"
 )
 
-// Key paths (expected).
-// todo: consider a better approach
+// Expected key paths
 const (
-	privateKeyPath = "keys/private.pem"
-	publicKeyPath  = "keys/public.pem"
+	privateKeyPath = "secrets/.PRIVATE.pem"
+	publicKeyPath  = "secrets/.PUBLIC.pem"
 )
 
 // PEM block types
@@ -51,12 +50,12 @@ func GetPublicKey() (*ecdsa.PublicKey, error) {
 		return nil, fmt.Errorf("cannot decode PEM block containing public key")
 	}
 
-	untyped, err := x509.ParsePKIXPublicKey(block.Bytes)
+	ukey, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse public key")
 	}
 
-	key, ok := untyped.(*ecdsa.PublicKey)
+	key, ok := ukey.(*ecdsa.PublicKey)
 	if !ok {
 		return nil, fmt.Errorf("public key is of the wrong type")
 	}

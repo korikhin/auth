@@ -4,20 +4,24 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/authenticate"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/login"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/register"
+	"github.com/studopolis/auth-server/internal/lib/jwt"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	"github.com/gorilla/mux"
 )
 
-func Public(r *mux.Router, log *slog.Logger, s *storage.Storage, config config.Config) {
+func NewRouter() *mux.Router {
+	return mux.NewRouter()
+}
+
+func Public(r *mux.Router, log *slog.Logger, a *jwt.JWTService, s *storage.Storage) {
 	register := register.New(log, s)
 	r.Handle("/users", register).Methods(http.MethodPost)
 
-	login := login.New(log, s, config.JWT)
+	login := login.New(log, a, s)
 	r.Handle("/auth", login).Methods(http.MethodPost)
 }
 

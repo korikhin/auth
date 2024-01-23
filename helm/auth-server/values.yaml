@@ -1,0 +1,20 @@
+# Chart
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment
+replicaCount: 1
+
+# Image
+# image:
+#   repository: your-image-repository
+#   pullPolicy: IfNotPresent
+#   tag: latest
+
+# Service Account
+serviceAccount:
+  create: false
+  name: ""
+
+# Other
+envPrefix: "STD_AUTH__"

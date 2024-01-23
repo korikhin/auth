@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/config"
 	httplib "github.com/studopolis/auth-server/internal/lib/http"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
@@ -16,7 +15,7 @@ import (
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
-func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http.Handler) http.Handler {
+func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http.Handler) http.Handler {
 	log.Info("jwt middleware enabled")
 	log = log.With(
 		logger.Component("middleware/jwt"),
@@ -37,11 +36,11 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 
 			mask := &jwt.ValidationMask{
 				IssuedAt: true,
-				Issuer:   config.Issuer,
-				Leeway:   config.Leeway,
+				Issuer:   a.Options.Issuer,
+				Leeway:   a.Options.Leeway,
 			}
 
-			claims, err := jwt.Validate(accessToken, jwt.ScopeAccess, mask)
+			claims, err := a.ValidateAccess(accessToken, mask)
 			if err != nil && !errors.Is(err, jwt.ErrTokenExpiredOnly) {
 				log.Error("cannot validate token", logger.Error(err))
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
@@ -54,15 +53,11 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 
 				userID := claims.Subject
 				user, err := s.User(ctxStorage, userID)
-
 				if err != nil {
 					log.Error(fmt.Sprintf("cannot find user: %s", userID), logger.Error(err))
 					http.Error(w, "User not found", http.StatusInternalServerError)
 					return
 				}
-
-				// update claims
-				// claims.UserRole = user.Role
 
 				refreshToken, err := jwt.GetRefreshToken(r)
 				if err != nil {
@@ -75,35 +70,29 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) func(next http
 					IssuedAt: true,
 					Issuer:   claims.Issuer,
 					Subject:  claims.Subject,
-					Leeway:   config.Leeway,
+					Leeway:   a.Options.Leeway,
 				}
 
-				if _, err := jwt.Validate(refreshToken, jwt.ScopeRefresh, mask); err != nil {
+				if _, err := a.ValidateRefresh(refreshToken, mask); err != nil {
 					log.Error("cannot validate refresh token", logger.Error(err))
 					http.Error(w, "Invalid token", http.StatusUnauthorized)
 					return
 				}
 
-				refreshToken, err = jwt.Issue(user, jwt.ScopeRefresh, config)
+				refreshToken, exp, err := a.IssueRefresh(user)
 				if err != nil {
 					log.Error("cannot issue refresh token", logger.Error(err))
 					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
 					return
 				}
+				jwt.SetRefreshToken(w, refreshToken, exp)
 
-				if err = jwt.SetRefreshToken(w, refreshToken); err != nil {
-					log.Error("cannot set refresh token", logger.Error(err))
-					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
-					return
-				}
-
-				accessToken, err = jwt.Issue(user, jwt.ScopeAccess, config)
+				accessToken, _, err = a.IssueAccess(user)
 				if err != nil {
 					log.Error("cannot issue token", logger.Error(err))
 					http.Error(w, "Cannot issue token", http.StatusInternalServerError)
 					return
 				}
-
 				jwt.SetAccessToken(w, accessToken)
 			}
 

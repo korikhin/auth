@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"log/slog"
+	"flag"
 	"net"
 	"net/http"
 	"os"
@@ -14,58 +14,65 @@ import (
 	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/http-server/handlers"
 	"github.com/studopolis/auth-server/internal/lib/http/cors"
+	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
 	jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
 	logMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
-
-	"github.com/gorilla/mux"
 )
 
 func main() {
-	// config and logger setup
-	config := config.MustLoad()
-	log := logger.New(config.Env)
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to config YAML file")
+	flag.Parse()
 
-	log.Info("starting auth service", slog.String("env", string(config.Env)))
+	// Config and Logger setup
+	config := config.MustLoad(configPath)
+	log := logger.New(config.Stage)
+
+	log.Info("starting auth service", logger.Stage(config.Stage))
 	log.Debug("debug messages are enabled")
 
-	// storage setup
+	// Storage setup
 	storage, err := storage.New(context.Background(), config.Storage)
 	if err != nil {
 		log.Error("failed to initialize storage", logger.Error(err))
 		os.Exit(1)
 	}
 
-	// router setup
-	router := mux.NewRouter()
+	// Router setup
+	router := handlers.NewRouter()
 
 	// CORS
-	cors := cors.New(config.HTTPServer.CORS)
+	cors := cors.New(config.CORS)
 	router.Use(cors)
 
-	// middleware
+	// Request ID middleware
 	requestMiddleware := requestMiddleware.New()
 	router.Use(requestMiddleware)
 
+	// Logger middleware
 	logMiddleware := logMiddleware.New(log)
 	router.Use(logMiddleware)
 
-	// handlers: public
+	// JWT: service
+	jwtService := jwt.NewService(config.JWT)
+
+	// JWT: middleware
+	jwtMiddleware := jwtMiddleware.New(log, jwtService, storage)
+
+	// Public handlers
 	publicRouter := router.PathPrefix("/").Subrouter()
-	handlers.Public(publicRouter, log, storage, *config)
+	handlers.Public(publicRouter, log, jwtService, storage)
 
-	// handlers: protected
+	// Protected handlers
 	protectedRouter := router.PathPrefix("/").Subrouter()
-
-	jwtMiddleware := jwtMiddleware.New(log, storage, config.JWT)
 	protectedRouter.Use(jwtMiddleware)
-
 	handlers.Protected(protectedRouter, log, storage)
 
-	// server setup
+	// Server setup
 	server := &http.Server{
 		Addr:         config.HTTPServer.Address,
 		Handler:      router,
@@ -86,32 +93,39 @@ func main() {
 		}
 	}()
 
-	healthCheck := make(chan bool, 1)
+	healthCheckPassed := make(chan bool, 1)
 	go func() {
 		time.Sleep(config.HTTPServer.HealthTimeout)
 
 		_, err := net.Dial("tcp", server.Addr)
 		if err != nil {
 			log.Error("server health check failed", logger.Error(err))
-			healthCheck <- false
+			healthCheckPassed <- false
 		}
-		healthCheck <- true
+		healthCheckPassed <- true
 	}()
 
-	if <-healthCheck {
-		log.Info("server started")
+	select {
+	case <-shutdown:
+	case passed := <-healthCheckPassed:
+		if passed {
+			log.Info("server started")
+			<-shutdown
+		}
 	}
 
-	<-shutdown
 	log.Info("stopping server")
-
 	ctx, cancel := context.WithTimeout(context.Background(), config.HTTPServer.ShutdownTimeout)
 	defer cancel()
 
+	// Storage closing
+	storage.Stop()
+
+	// Server shutdown
 	if err := server.Shutdown(ctx); err != nil {
 		log.Error("failed to stop server", logger.Error(err))
 		return
+	} else {
+		log.Info("server stopped")
 	}
-
-	log.Info("server stopped")
 }

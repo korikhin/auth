@@ -1,93 +1,148 @@
 package config
 
 import (
-	"flag"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/knadh/koanf"
+	kyaml "github.com/knadh/koanf/parsers/yaml"
+	kenv "github.com/knadh/koanf/providers/env"
+	kfile "github.com/knadh/koanf/providers/file"
+	kstr "github.com/knadh/koanf/providers/structs"
 )
 
-type EnvType string
+type Stage string
 
 type Config struct {
-	Env        EnvType `yaml:"env" env-default:"local" env-required:"true"`
-	HTTPServer `yaml:"http_server"`
-	JWT        `yaml:"jwt"`
-	Storage    `yaml:"storage"`
+	Stage      Stage `yaml:"-" koanf:"stg"`
+	CORS       `yaml:"cors" koanf:"cors"`
+	HTTPServer `yaml:"http-server" koanf:"http-server"`
+	JWT        `yaml:"jwt" koanf:"jwt"`
+	Storage    `yaml:"storage" koanf:"storage"`
 }
 
 type HTTPServer struct {
-	Address         string        `yaml:"address" env-default:"localhost:8080" env-required:"true"`
-	ReadTimeout     time.Duration `yaml:"read_timeout" env-default:"5s"`
-	WriteTimeout    time.Duration `yaml:"write_timeout" env-default:"5s"`
-	IdleTimeout     time.Duration `yaml:"idle_timeout" env-default:"60s"`
-	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env-default:"10s"`
-	HealthTimeout   time.Duration `yaml:"health_timeout" env-default:"1s"`
-	CORS            `yaml:"cors"`
+	Address         string        `yaml:"address" koanf:"address"`
+	ReadTimeout     time.Duration `yaml:"read-timeout" koanf:"read-timeout"`
+	WriteTimeout    time.Duration `yaml:"write-timeout" koanf:"write-timeout"`
+	IdleTimeout     time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
+	ShutdownTimeout time.Duration `yaml:"shutdown-timeout" koanf:"shutdown-timeout"`
+	HealthTimeout   time.Duration `yaml:"health-timeout" koanf:"health-timeout"`
 }
 
 type CORS struct {
-	AllowedOrigins []string `yaml:"allowed_origins"`
-	MaxAge         int      `yaml:"max_age"`
+	AllowedOrigins []string `yaml:"allowed-origins" koanf:"allowed-origins"`
+	MaxAge         int      `yaml:"max-age" koanf:"max-age"`
 }
 
 type JWT struct {
-	Issuer     string        `yaml:"issuer"`
-	AccessTTL  time.Duration `yaml:"access_ttl" env-default:"15m"`
-	RefreshTTL time.Duration `yaml:"refresh_ttl" env-default:"24h"`
-	Leeway     time.Duration `yaml:"leeway" env-default:"0s"`
+	Issuer     string        `yaml:"issuer" koanf:"issuer"`
+	AccessTTL  time.Duration `yaml:"access-ttl" koanf:"access-ttl"`
+	RefreshTTL time.Duration `yaml:"refresh-ttl" koanf:"refresh-ttl"`
+	Leeway     time.Duration `yaml:"leeway" koanf:"leeway"`
 }
 
 type Storage struct {
-	Alpha Replica `yaml:"alpha"` // master
-	Beta  Replica `yaml:"beta"`
-	Gamma Replica `yaml:"gamma"`
-}
-
-type Replica struct {
-	URL          string        `yaml:"url"`
-	MinConns     int32         `yaml:"min_conns" env-default:"1"`
-	MaxConns     int32         `yaml:"max_conns" env-default:"1"`
-	ReadTimeout  time.Duration `yaml:"read_timeout" env-default:"5s"`
-	WriteTimeout time.Duration `yaml:"write_timeout" env-default:"5s"`
-	IdleTimeout  time.Duration `yaml:"idle_timeout" env-default:"30m"`
+	URL          string        `yaml:"url" koanf:"url"`
+	MinConns     int32         `yaml:"min-conns" koanf:"min-conns"`
+	MaxConns     int32         `yaml:"max-conns" koanf:"max-conns"`
+	ReadTimeout  time.Duration `yaml:"read-timeout" koanf:"read-timeout"`
+	WriteTimeout time.Duration `yaml:"write-timeout" koanf:"write-timeout"`
+	IdleTimeout  time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
 }
 
 const (
-	EnvLocal EnvType = "local"
-	EnvDev   EnvType = "dev"
-	EnvProd  EnvType = "prod"
+	envPrefix     = "AUTH_SERVER__ENV_PREFIX"
+	envStage      = "STG"
+	prefixDefault = "AUTH_SERVER__"
+	Tag           = "koanf"
 )
 
-func MustLoad() *Config {
-	path := fetchConfigPath()
-	if path == "" {
-		panic("config is not set")
-	}
+// Development stage
+const (
+	Local Stage = "local"
+	Dev   Stage = "dev"
+	Prod  Stage = "prod"
+)
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		panic(fmt.Sprintf("config file does not exist: \"%s\"", path))
-	}
-
-	var config Config
-	if err := cleanenv.ReadConfig(path, &config); err != nil {
-		panic(fmt.Sprintf("failed to read config: %v", err))
-	}
-
-	return &config
+var stages = map[Stage]struct{}{
+	Local: {},
+	Dev:   {},
+	Prod:  {},
 }
 
-func fetchConfigPath() string {
-	var path string
+func MustLoad(path string) *Config {
+	prefix := os.Getenv(envPrefix)
+	if prefix == "" {
+		prefix = prefixDefault
+	}
+	log.Printf("using env prefix: %s", prefix)
 
-	flag.StringVar(&path, "config", "", "path to config file")
-	flag.Parse()
-
-	if path == "" {
-		path = os.Getenv("CONFIG_PATH")
+	s := Stage(os.Getenv(fmt.Sprintf("%s%s", prefix, envStage)))
+	if _, ok := stages[s]; !ok {
+		log.Fatalf(
+			"error loading config: please provide stage variable %s%s ('local', 'dev', 'prod')",
+			prefix, envStage,
+		)
 	}
 
-	return path
+	cfg := Default()
+	k := koanf.New(".")
+	if err := k.Load(kstr.Provider(cfg, Tag), nil); err != nil {
+		log.Fatalf("error setting default config values: %v", err)
+	}
+
+	if s == Local {
+		if path == "" {
+			log.Fatal("error loading config: please provide config path via --config flag")
+		}
+		if err := k.Load(kfile.Provider(path), kyaml.Parser()); err != nil {
+			log.Fatalf("error loading config: %v", err)
+		}
+	}
+
+	if err := k.Load(kenv.Provider(prefix, ".", ParseEnvVariable), nil); err != nil {
+		log.Fatalf("error loading config: %v", err)
+	}
+
+	if err := k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: Tag}); err != nil {
+		log.Fatalf("error unmarshaling config: %v", err)
+	}
+
+	return cfg
+}
+
+func ParseEnvVariable(s string) string {
+	s = strings.TrimPrefix(s, prefixDefault)
+	s = strings.Replace(s, "__", ".", -1)
+	s = strings.Replace(s, "_", "-", -1)
+	return strings.ToLower(s)
+}
+
+func Default() *Config {
+	return &Config{
+		HTTPServer: HTTPServer{
+			Address:         "localhost:8080",
+			ReadTimeout:     5 * time.Second,
+			WriteTimeout:    5 * time.Second,
+			IdleTimeout:     60 * time.Second,
+			ShutdownTimeout: 10 * time.Second,
+			HealthTimeout:   1 * time.Second,
+		},
+		JWT: JWT{
+			AccessTTL:  15 * time.Minute,
+			RefreshTTL: 24 * time.Hour,
+			Leeway:     0 * time.Second,
+		},
+		Storage: Storage{
+			MinConns:     1,
+			MaxConns:     1,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			IdleTimeout:  30 * time.Minute,
+		},
+	}
 }

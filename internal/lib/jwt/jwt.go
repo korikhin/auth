@@ -3,17 +3,34 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"net/http"
+	"log"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/domain/models"
-	httplib "github.com/studopolis/auth-server/internal/lib/http"
 	"github.com/studopolis/auth-server/internal/lib/secrets"
 
+	// "github.com/studopolis/auth-server/internal/lib/secrets"
+
 	"github.com/golang-jwt/jwt/v5"
+)
+
+const (
+	headerAuthPrefix   = "Bearer"
+	refreshTokenCookie = "_studopolis.rt"
+	ScopeAccess        = "a"
+	ScopeRefresh       = "r"
+)
+
+var (
+	ErrTokenMissing      = errors.New("token is missing")
+	ErrTokenInvalid      = errors.New("token is invalid")
+	ErrTokenExpiredOnly  = errors.New("token is expired")
+	ErrTokenInvalidScope = errors.New("token has invalid scope")
+	// ErrRoleHeaderMissing = errors.New("required role header is missing")
+	// ErrAccessDenied      = errors.New("denied")
 )
 
 type Claims struct {
@@ -23,152 +40,9 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-type ValidationMask struct {
-	Audience string
-	IssuedAt bool
-	Issuer   string
-	Leeway   time.Duration
-	Subject  string
-}
-
-var (
-	privateKey interface{}
-	publicKey  interface{}
-)
-
-func init() {
-	var err error
-	privateKey, err = secrets.GetPrivateKey()
-	if err != nil {
-		panic(fmt.Sprintf("error loading private key: %v", err))
-	}
-
-	publicKey, err = secrets.GetPublicKey()
-	if err != nil {
-		panic(fmt.Sprintf("error loading public key: %v", err))
-	}
-}
-
-func GetAccessToken(r *http.Request) (string, error) {
-	const op = "jwt.GetAccessToken"
-
-	h := r.Header.Get(httplib.HeaderAuth)
-	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", headerAuthPrefix))
-
-	if !found || b != "" {
-		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalid)
-	}
-
-	return a, nil
-}
-
-func SetAccessToken(w http.ResponseWriter, token string) {
-	// const op = "jwt.SetAccessToken"
-
-	h := fmt.Sprintf("%s %s", headerAuthPrefix, token)
-	w.Header().Set(httplib.HeaderAuth, h)
-}
-
-func GetRefreshToken(r *http.Request) (string, error) {
-	const op = "jwt.GetRefreshToken"
-
-	c, err := r.Cookie(refreshTokenCookie)
-	if err != nil || strings.TrimSpace(c.Value) == "" {
-		return "", fmt.Errorf("%s: %w", op, ErrTokenMissing)
-	}
-
-	return c.Value, nil
-}
-
-func SetRefreshToken(w http.ResponseWriter, token string) error {
-	const op = "jwt.SetRefreshToken"
-
-	exp, err := getExpirationTime(token)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	c := http.Cookie{
-		Name:     refreshTokenCookie,
-		Value:    token,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		Expires:  exp,
-	}
-
-	http.SetCookie(w, &c)
-	return nil
-}
-
-func Validate(token, scope string, m *ValidationMask) (*Claims, error) {
-	const op = "jwt.Validate"
-
-	t, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return publicKey, nil
-	}, m.WithOptions()...)
-
-	var isExpiredOnly bool
-	if err != nil {
-		isExpiredOnly = expiredOnly(err)
-		if !isExpiredOnly {
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
-	}
-
-	c, ok := t.Claims.(*Claims)
-	if !ok || !t.Valid && !isExpiredOnly {
-		return nil, fmt.Errorf("%s: %w", op, ErrTokenInvalid)
-	}
-
-	if c.TokenScope != scope {
-		return nil, fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)
-	}
-
-	if isExpiredOnly {
-		return c, ErrTokenExpiredOnly
-	}
-
-	return c, nil
-}
-
-func Issue(user *models.User, scope string, config config.JWT) (string, error) {
-	const op = "jwt.Issue"
-	var ttl time.Duration
-
-	switch scope {
-	case ScopeAccess:
-		ttl = config.AccessTTL
-	case ScopeRefresh:
-		ttl = config.RefreshTTL
-	default:
-		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)
-	}
-
-	c := &Claims{
-		// UserID:     user.ID,
-		// UserRole:   user.Role,
-		TokenScope: scope,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Subject:   fmt.Sprint(user.ID),
-			Issuer:    config.Issuer,
-		},
-	}
-
-	t := jwt.NewWithClaims(jwt.SigningMethodES256, c)
-	s, err := t.SignedString(privateKey)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-
-	return s, nil
-}
-
 // Check required claims
 func (c Claims) Validate() error {
-	if c.TokenScope == "" {
+	if c.TokenScope != ScopeAccess && c.TokenScope != ScopeRefresh {
 		return ErrTokenInvalidScope
 	}
 
@@ -184,14 +58,22 @@ func (c Claims) Validate() error {
 		return jwt.ErrTokenRequiredClaimMissing
 	}
 
-	// if type of Subject changes in the future (e.g. UUID)
-	// just use: if c.Subject == "" { return jwt.ErrTokenRequiredClaimMissing }
+	// If type of Subject changes in the future (e.g. UUID)
+	// use: if c.Subject == "" { return jwt.ErrTokenRequiredClaimMissing }
 	// or other checks if needed
 	if _, err := strconv.ParseUint(c.Subject, 10, 64); err != nil {
 		return jwt.ErrTokenInvalidSubject
 	}
 
 	return nil
+}
+
+type ValidationMask struct {
+	Audience string
+	IssuedAt bool
+	Issuer   string
+	Leeway   time.Duration
+	Subject  string
 }
 
 func (m *ValidationMask) WithOptions() []jwt.ParserOption {
@@ -220,32 +102,118 @@ func (m *ValidationMask) WithOptions() []jwt.ParserOption {
 	return opts
 }
 
-func expiredOnly(err error) bool {
-	if errors.Is(err, jwt.ErrTokenExpired) {
-		if errs, ok := err.(interface{ Unwrap() []error }); ok {
-			claimErrs := errs.Unwrap()[1]
-			if errs, ok = claimErrs.(interface{ Unwrap() []error }); ok {
-				if len(errs.Unwrap()) == 1 {
-					return true
-				}
-			}
-		}
-	}
-	return false
+type JWTService struct {
+	pk      interface{}
+	pubk    interface{}
+	once    sync.Once
+	Options config.JWT
 }
 
-// WARNING: Use for getting expiration time only. Don't validate tokens with this function
-func getExpirationTime(token string) (time.Time, error) {
-	const op = "jwt.tokenExpiration"
+func NewService(c config.JWT) *JWTService {
+	return &JWTService{Options: c}
+}
 
-	t, _, err := jwt.NewParser().ParseUnverified(token, &Claims{})
+// Lazy load of secrets
+func (a *JWTService) load() {
+	const fatalMsg = "failed to initialize key management: please check system configuration"
+
+	a.once.Do(func() {
+		pk, err := secrets.GetPrivateKey()
+		if err != nil {
+			log.Fatal(fatalMsg)
+		}
+		a.pk = pk
+
+		pubk, err := secrets.GetPublicKey()
+		if err != nil {
+			log.Fatal(fatalMsg)
+		}
+		a.pubk = pubk
+	})
+}
+
+func (a *JWTService) validate(token, scope string, m *ValidationMask) (*Claims, error) {
+	const op = "jwt.Validate"
+
+	a.load()
+
+	t, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return a.pubk, nil
+	}, m.WithOptions()...)
+
+	var isExpiredOnly bool
 	if err != nil {
-		return time.Time{}, fmt.Errorf("%s: %w", op, ErrTokenInvalid)
+		isExpiredOnly = expiredOnly(err)
+		if !isExpiredOnly {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
 	}
 
-	if c, ok := t.Claims.(*Claims); ok {
-		return c.ExpiresAt.Time, nil
+	c, ok := t.Claims.(*Claims)
+	if !ok || !t.Valid && !isExpiredOnly {
+		return nil, fmt.Errorf("%s: %w", op, ErrTokenInvalid)
 	}
 
-	return time.Time{}, fmt.Errorf("%s: %w", op, errors.New("cannot get expiration time"))
+	if c.TokenScope != scope {
+		return nil, fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)
+	}
+
+	if isExpiredOnly {
+		return c, ErrTokenExpiredOnly
+	}
+
+	return c, nil
+}
+
+func (a *JWTService) ValidateAccess(token string, m *ValidationMask) (*Claims, error) {
+	return a.validate(token, ScopeAccess, m)
+}
+
+func (a *JWTService) ValidateRefresh(token string, m *ValidationMask) (*Claims, error) {
+	return a.validate(token, ScopeRefresh, m)
+}
+
+func (a *JWTService) issue(user *models.User, scope string) (string, time.Time, error) {
+	const op = "jwt.Issue"
+
+	a.load()
+
+	var ttl time.Duration
+	switch scope {
+	case ScopeAccess:
+		ttl = a.Options.AccessTTL
+	case ScopeRefresh:
+		ttl = a.Options.RefreshTTL
+	default:
+		return "", time.Time{}, fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)
+	}
+
+	exp := time.Now().Add(ttl)
+	c := &Claims{
+		// UserID:     user.ID,
+		// UserRole:   user.Role,
+		TokenScope: scope,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:   fmt.Sprint(user.ID),
+			Issuer:    a.Options.Issuer,
+		},
+	}
+
+	t := jwt.NewWithClaims(jwt.SigningMethodES256, c)
+	s, err := t.SignedString(a.pk)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return s, exp, nil
+}
+
+func (a *JWTService) IssueAccess(user *models.User) (string, time.Time, error) {
+	return a.issue(user, ScopeAccess)
+}
+
+func (a *JWTService) IssueRefresh(user *models.User) (string, time.Time, error) {
+	return a.issue(user, ScopeRefresh)
 }

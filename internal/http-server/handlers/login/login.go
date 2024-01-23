@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/lib/api/response"
 	"github.com/studopolis/auth-server/internal/lib/api/validation"
 	"github.com/studopolis/auth-server/internal/lib/http/codec"
@@ -20,7 +19,7 @@ import (
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
-func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
+func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.login.New"
 
@@ -66,26 +65,20 @@ func New(log *slog.Logger, s *storage.Storage, config config.JWT) http.Handler {
 			return
 		}
 
-		refreshToken, err := jwt.Issue(user, jwt.ScopeRefresh, config)
+		refreshToken, exp, err := a.IssueRefresh(user)
 		if err != nil {
 			log.Error("cannot issue refresh token", logger.Error(err))
 			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
+		jwt.SetRefreshToken(w, refreshToken, exp)
 
-		if err = jwt.SetRefreshToken(w, refreshToken); err != nil {
-			log.Error("cannot set refresh token", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError())
-			return
-		}
-
-		accessToken, err := jwt.Issue(user, jwt.ScopeAccess, config)
+		accessToken, _, err := a.IssueAccess(user)
 		if err != nil {
 			log.Error("cannot issue token", logger.Error(err))
 			codec.JSONResponse(w, r, response.InternalError())
 			return
 		}
-
 		jwt.SetAccessToken(w, accessToken)
 
 		response := response.Ok("user logged in successfully")

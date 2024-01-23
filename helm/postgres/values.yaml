@@ -1,0 +1,5 @@
+auth:
+  username: auth
+  password: "0000"
+  database: master
+  
