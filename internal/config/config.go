@@ -54,6 +54,7 @@ type Storage struct {
 	IdleTimeout  time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
 }
 
+// Developing environment
 const (
 	envPrefix     = "AUTH_SERVER__ENV_PREFIX"
 	envStage      = "STG"
