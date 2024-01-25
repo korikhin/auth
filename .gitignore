@@ -9,7 +9,6 @@
 !LICENSE
 
 # Configs
-!config/prod.yaml
 !config/*.example.yaml
 
 # Go
