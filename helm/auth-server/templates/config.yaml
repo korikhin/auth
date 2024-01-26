@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "authServer.fullname" . }}-env-config
+  labels:
+    {{- include "authServer.labels" . | nindent 4 }}
+data:
+  CONFIG_PATH: "config/prod.yaml" # todo: delete, use env vars only, .yaml for local dev
+  STG: "prod"
+  CORS__ALLOWED_ORIGINS: "https://studopolis.ru,"
+  CORS__MAX_AGE: 600
+  HTTP_SERVER__ADDRESS: "localhost:8080"
+  HTTP_SERVER__READ_TIMEOUT: "5s"
+  HTTP_SERVER__WRITE_TIMEOUT: "5s"
+  HTTP_SERVER__IDLE_TIMEOUT: "60s"
+  HTTP_SERVER__SHUTDOWN_TIMEOUT: "10s"
+  HTTP_SERVER__HEALTH_TIMEOUT: "1s"
+  JWT__ISSUER: "Studopolis Authentication"
+  JWT__ACCESS_TTL: "15m"
+  JWT__REFRESH_TTL: "60m"
+  JWT__LEEWAY: "2s"
+  STORAGE__URL: "postgres://auth:0000@db-postgresql:5432/master"
+  STORAGE__MIN_CONNS: 1
+  STORAGE__MAX_CONNS: 1
+  STORAGE__READ_TIMEOUT: "5s"
+  STORAGE__WRITE_TIMEOUT: "5s"
+  STORAGE__IDLE_TIMEOUT: "30m"

@@ -1,7 +1,7 @@
 *
 
 # General
-!.github/
+!.github/**
 !/.gitignore
 !.gitkeep
 
@@ -21,9 +21,8 @@
 !Dockerfile
 
 # Folders
-!src/
-!deployment/
-!helm/
+!deployment/**
+!helm/**
 !migrations/
 !tests/
 
