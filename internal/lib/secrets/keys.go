@@ -9,9 +9,10 @@ import (
 )
 
 // Expected key paths
+// Prefix `/etc` added for Render.com deployment
 const (
-	privateKeyPath = "secrets/.PRIVATE.pem"
-	publicKeyPath  = "secrets/.PUBLIC.pem"
+	privateKeyPath = "/etc/secrets/.PRIVATE.pem"
+	publicKeyPath  = "/etc/secrets/.PUBLIC.pem"
 )
 
 // PEM block types

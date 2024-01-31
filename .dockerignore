@@ -5,6 +5,8 @@
 !go.sum
 
 # Folders
-!src/
+!cmd/
+!internal/
+#migrations/
 
 !*/

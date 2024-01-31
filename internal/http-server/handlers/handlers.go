@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/studopolis/auth-server/internal/http-server/handlers/authenticate"
+	"github.com/studopolis/auth-server/internal/http-server/handlers/health"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/login"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/register"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
@@ -18,6 +19,9 @@ func NewRouter() *mux.Router {
 }
 
 func Public(r *mux.Router, log *slog.Logger, a *jwt.JWTService, s *storage.Storage) {
+	health := health.New()
+	r.Handle("/health", health).Methods(http.MethodGet)
+
 	register := register.New(log, s)
 	r.Handle("/users", register).Methods(http.MethodPost)
 
