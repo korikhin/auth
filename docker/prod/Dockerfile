@@ -13,7 +13,7 @@ RUN apk add --update --no-cache upx \
 # FROM build-stage AS test-stage
 # RUN go test -v ./...
 
-FROM scratch:latest AS release-stage
+FROM scratch AS release-stage
 WORKDIR /app
 COPY --from=build-stage /build/app ./app
 
