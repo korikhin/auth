@@ -1,0 +1,33 @@
+name: "Publish Docker image to GitHub Packages"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+
+      - name: "Log in to GitHub Container Registry"
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Build and push Docker image (Production)"
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./docker/prod/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/auth-server:latest
+
+      - name: "Verify pushed image"
+        run: |
+          echo "Docker image for prod has been pushed to GitHub Packages"

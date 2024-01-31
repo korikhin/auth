@@ -13,8 +13,13 @@ RUN apk add --update --no-cache upx \
 # FROM build-stage AS test-stage
 # RUN go test -v ./...
 
-FROM scratch AS release-stage
+FROM scratch:latest AS release-stage
 WORKDIR /app
 COPY --from=build-stage /build/app ./app
+
+LABEL org.opencontainers.image.source="https://github.com/studopolis/auth-server"
+LABEL org.opencontainers.image.description="Studopolis Authentication Server Image"
+# LABEL org.opencontainers.image.licenses="MIT"
+
 EXPOSE 8080
 ENTRYPOINT ["./app"]

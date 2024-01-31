@@ -105,7 +105,8 @@ func MustLoad(path string) *Config {
 		}
 	}
 
-	if err := k.Load(kenv.Provider(prefix, ".", ParseEnvVariable), nil); err != nil {
+	// bug fix with env prefix. know it's taken into account
+	if err := k.Load(kenv.Provider(prefix, ".", Env2YAMLVariableParser(prefix)), nil); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 
@@ -116,17 +117,23 @@ func MustLoad(path string) *Config {
 	return cfg
 }
 
-func ParseEnvVariable(s string) string {
-	s = strings.TrimPrefix(s, prefixDefault)
-	s = strings.Replace(s, "__", ".", -1)
-	s = strings.Replace(s, "_", "-", -1)
-	return strings.ToLower(s)
+func Env2YAMLVariableParser(p string) func(string) string {
+	return func(s string) string {
+		s = strings.TrimPrefix(s, p)
+		s = strings.Replace(s, "__", ".", -1)
+		s = strings.Replace(s, "_", "-", -1)
+		return strings.ToLower(s)
+	}
 }
 
 func Default() *Config {
 	return &Config{
+		CORS: CORS{
+			AllowedOrigins: []string{"*"},
+			MaxAge:         0,
+		},
 		HTTPServer: HTTPServer{
-			Address:         "localhost:8080",
+			Address:         "0.0.0.0:8080",
 			ReadTimeout:     5 * time.Second,
 			WriteTimeout:    5 * time.Second,
 			IdleTimeout:     60 * time.Second,

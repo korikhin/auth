@@ -1,0 +1,12 @@
+*
+
+# Go
+!go.mod
+!go.sum
+
+# Folders
+!cmd/
+!internal/
+#migrations/
+
+!*/
