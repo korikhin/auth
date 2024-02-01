@@ -19,7 +19,8 @@ COPY --from=build-stage /build/app ./app
 
 LABEL org.opencontainers.image.description="Studopolis Authentication Server Image"
 LABEL org.opencontainers.image.source="https://github.com/studopolis/auth-server"
-# LABEL org.opencontainers.image.licenses="" # See https://spdx.org/licenses/
+LABEL org.opencontainers.image.licenses=""
+# See https://spdx.org/licenses/
 
 EXPOSE 8080
 ENTRYPOINT ["./app"]

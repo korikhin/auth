@@ -15,21 +15,21 @@ import (
 )
 
 func NewRouter() *mux.Router {
-	return mux.NewRouter()
+	return mux.NewRouter().PathPrefix("/api").Subrouter()
 }
 
 func Public(r *mux.Router, log *slog.Logger, a *jwt.JWTService, s *storage.Storage) {
 	health := health.New()
-	r.Handle("/health", health).Methods(http.MethodGet)
+	r.Handle("v1/health", health).Methods(http.MethodGet)
 
 	register := register.New(log, s)
-	r.Handle("/users", register).Methods(http.MethodPost)
+	r.Handle("v1/users", register).Methods(http.MethodPost)
 
 	login := login.New(log, a, s)
-	r.Handle("/auth", login).Methods(http.MethodPost)
+	r.Handle("v1/auth", login).Methods(http.MethodPost)
 }
 
 func Protected(r *mux.Router, log *slog.Logger, s *storage.Storage) {
 	auth := authenticate.New()
-	r.Handle("/auth", auth).Methods(http.MethodGet)
+	r.Handle("v1/auth", auth).Methods(http.MethodGet)
 }
