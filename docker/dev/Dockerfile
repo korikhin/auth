@@ -18,7 +18,7 @@ WORKDIR /app
 COPY --from=build-stage /build/app ./app
 
 LABEL org.opencontainers.image.source="https://github.com/studopolis/auth-server"
-LABEL org.opencontainers.image.description="Studopolis Authentication Server Image. Development"
+LABEL org.opencontainers.image.description="Studopolis Authentication Server Image (Development)"
 # LABEL org.opencontainers.image.licenses="MIT"
 
 EXPOSE 8080
