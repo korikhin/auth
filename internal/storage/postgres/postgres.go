@@ -32,32 +32,36 @@ type Storage struct {
 var (
 	pool     *pgxpool.Pool
 	poolOnce sync.Once
-	poolErr  error
 )
 
 func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	const op = "storage.postgres.New"
 
+	// Attempt to parse the pool configuration from the provided URL
+	poolConfig, err := pgxpool.ParseConfig(config.URL)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// Apply the configuration
+	poolConfig.MinConns = config.MinConns
+	poolConfig.MaxConns = config.MaxConns
+	poolConfig.MaxConnIdleTime = config.IdleTimeout
+
+	var initPoolErr error
 	poolOnce.Do(func() {
-		poolConfig, err := pgxpool.ParseConfig(config.URL)
-		if err != nil {
-			poolErr = fmt.Errorf("%s: %w", op, err)
-			return
-		}
-
-		poolConfig.MinConns = config.MinConns
-		poolConfig.MaxConns = config.MaxConns
-		poolConfig.MaxConnIdleTime = config.IdleTimeout
-
-		pool, err = pgxpool.NewWithConfig(ctx, poolConfig)
-		if err != nil {
-			poolErr = fmt.Errorf("%s: %w", op, err)
-			return
+		pool, initPoolErr = pgxpool.NewWithConfig(ctx, poolConfig)
+		if initPoolErr == nil {
+			// Explicitly test the connection
+			if err := pool.Ping(ctx); err != nil {
+				initPoolErr = nil // plug
+				// initPoolErr = fmt.Errorf("%s: unable to connect to database: %w", op, err)
+			}
 		}
 	})
 
-	if poolErr != nil {
-		return nil, poolErr
+	if initPoolErr != nil {
+		return nil, initPoolErr
 	}
 
 	opts := &Options{

@@ -2,6 +2,7 @@ package response
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -10,7 +11,13 @@ const (
 	StatusError = "error"
 )
 
+var (
+	EmptyRequest  = Error("request body is empty", http.StatusBadRequest)
+	InternalError = Error("internal server error", http.StatusInternalServerError)
+)
+
 type Response struct {
+	Code    int    `json:"code"`
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`
 	Details string `json:"details,omitempty"`
@@ -18,13 +25,18 @@ type Response struct {
 
 func Ok(msg string) Response {
 	return Response{
+		Code:    http.StatusOK,
 		Status:  StatusOK,
 		Message: msg,
 	}
 }
 
-func Error(msg string, details ...any) Response {
+func Error(msg string, code int, details ...any) Response {
+	if code < 100 || code > 599 {
+		code = 0
+	}
 	r := Response{
+		Code:    code,
 		Status:  StatusError,
 		Message: msg,
 	}
@@ -38,8 +50,4 @@ func Error(msg string, details ...any) Response {
 	}
 
 	return r
-}
-
-func InternalError() Response {
-	return Error("internal server error")
 }

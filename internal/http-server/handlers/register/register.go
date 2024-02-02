@@ -18,6 +18,10 @@ import (
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
+var (
+	errCannotCreateUser = response.Error("cannot create user", http.StatusInternalServerError)
+)
+
 func New(log *slog.Logger, s *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.register.New"
@@ -33,26 +37,26 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
-				codec.JSONResponse(w, r, response.Error("request body is empty"))
+				codec.JSONResponse(w, r, response.EmptyRequest)
 				return
 			}
 
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError())
+			codec.JSONResponse(w, r, response.InternalError)
 			return
 		}
 
 		err = validation.Validate(c)
 		if err != nil {
 			log.Error("bad request", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("bad request", err))
+			codec.JSONResponse(w, r, response.Error("bad request", http.StatusBadRequest, err))
 			return
 		}
 
 		hash, err := secrets.GenerateFromPassword(c.Password)
 		if err != nil {
 			log.Error("failed to create password hash", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("cannot create user"))
+			codec.JSONResponse(w, r, errCannotCreateUser)
 			return
 		}
 
@@ -62,7 +66,7 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		userID, err := s.SaveUser(ctx, c.Email, hash)
 		if err != nil {
 			log.Error("failed to register the user", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("cannot create user"))
+			codec.JSONResponse(w, r, errCannotCreateUser)
 			return
 		}
 

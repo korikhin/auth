@@ -19,6 +19,10 @@ import (
 	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
+var (
+	errInvalidCredentials = response.Error("invalid credentials", http.StatusUnauthorized)
+)
+
 func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.login.New"
@@ -34,12 +38,12 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
-				codec.JSONResponse(w, r, response.Error("request body is empty"))
+				codec.JSONResponse(w, r, response.EmptyRequest)
 				return
 			}
 
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("cannot create user"))
+			codec.JSONResponse(w, r, response.InternalError)
 			return
 		}
 
@@ -50,25 +54,25 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 		if err != nil {
 			if errors.Is(err, st.ErrUserNotFound) {
 				log.Warn("user not found", logger.Error(err))
-				codec.JSONResponse(w, r, response.Error("invalid credentials"))
+				codec.JSONResponse(w, r, errInvalidCredentials)
 				return
 			}
 
 			log.Error("failed to get user", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError())
+			codec.JSONResponse(w, r, response.InternalError)
 			return
 		}
 
 		if err = secrets.CompareHashAndPassword(user.PasswordHash, c.Password); err != nil {
 			log.Info("invalid credentials", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("invalid credentials"))
+			codec.JSONResponse(w, r, errInvalidCredentials)
 			return
 		}
 
 		refreshToken, exp, err := a.IssueRefresh(user)
 		if err != nil {
 			log.Error("cannot issue refresh token", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError())
+			codec.JSONResponse(w, r, response.InternalError)
 			return
 		}
 		jwt.SetRefreshToken(w, refreshToken, exp)
@@ -76,7 +80,7 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 		accessToken, _, err := a.IssueAccess(user)
 		if err != nil {
 			log.Error("cannot issue token", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError())
+			codec.JSONResponse(w, r, response.InternalError)
 			return
 		}
 		jwt.SetAccessToken(w, accessToken)
