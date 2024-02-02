@@ -1,0 +1,14 @@
+name: "Keep Service Alive"
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Ping
+      run: |
+        curl -s -o /dev/null -w "%{http_code}" ${{ vars.AUTH_SERVER__HEALTH }} | grep 200 || echo "Health check failed!"
