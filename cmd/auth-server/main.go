@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -24,8 +25,18 @@ import (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintln(flag.CommandLine.Output(), "Description:")
+		fmt.Fprintln(flag.CommandLine.Output(), "   - Studopolis Authentication Server")
+		fmt.Fprintf(flag.CommandLine.Output(), "   - https://github.com/studopolis/auth-server\n\n")
+		fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
+		flag.VisitAll(func(f *flag.Flag) {
+			fmt.Fprintf(flag.CommandLine.Output(), "   --%-14s %s\n", f.Name, f.Usage)
+		})
+	}
+
 	var configPath string
-	flag.StringVar(&configPath, "config", "", "Path to config YAML file")
+	flag.StringVar(&configPath, "config", "", "Path to config YAML file (local development only)")
 	flag.Parse()
 
 	// Config and Logger setup
