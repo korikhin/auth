@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ${{ vars.AUTH_SERVER_IMAGE_NAME }}
+  IMAGE_NAME: ${{ vars.AUTH_SERVER__IMAGE_NAME }}
 
 jobs:
   build-and-push:
