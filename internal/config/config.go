@@ -54,7 +54,6 @@ type Storage struct {
 	IdleTimeout  time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
 }
 
-// Developing environment
 const (
 	envPrefix     = "AUTH_SERVER__ENV_PREFIX"
 	envStage      = "STG"
@@ -62,7 +61,7 @@ const (
 	Tag           = "koanf"
 )
 
-// Development stage
+// Development stages
 const (
 	Local Stage = "local"
 	Dev   Stage = "dev"
@@ -105,7 +104,6 @@ func MustLoad(path string) *Config {
 		}
 	}
 
-	// bug fix with env prefix. know it's taken into account
 	if err := k.Load(kenv.Provider(prefix, ".", Env2YAMLVariableParser(prefix)), nil); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}

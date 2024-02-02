@@ -4,16 +4,20 @@ This guide provides instructions for managing Docker images for both development
 
 ## Publishing a New Release to GitHub Packages
 
-To publish a new release of your Docker image to GitHub Packages:
+To publish a new release of Docker image to GitHub Packages:
 
-1. Navigate to the **Actions** tab in your GitHub repository.
-2. Find the workflow named **Publish Docker image to GitHub Packages** or similar based on your configuration.
-3. Click on the workflow to view its details.
-4. Click on the **Run workflow** dropdown button, usually located on the right side.
-5. Select the branch where your latest code resides.
-6. Click the **Run workflow** button to start the manual workflow.
+1. Navigate to the **Actions** tab in the repository.
+2. Find the workflow named **Publish Docker image to GitHub Packages** or similar.
+3. Click on the **Run workflow** dropdown button, usually located on the right side.
+4. Select the reference for publishing (branch or tag).
+5. Click the **Run workflow** button to start the manual workflow.
 
-This process will build and push the production Docker image to GitHub Packages, tagging it with the `latest` tag.
+To specify image name set repository variable `AUTH_SERVER__IMAGE_NAME`.
+This process will build and push the production Docker image to GitHub Packages.
+
+**Tagging options**. Image tag depends on the reference of your choise:
+- `main` branch reference will result in tagging the image as `latest`;
+- `v*` tag (e.g. `v1.0.0`) will just set an image tag as whatever goes after `v`.
 
 ## Building Images Locally
 
@@ -35,6 +39,6 @@ Similarly, for building a production-ready Docker image, use the following comma
 docker build -f docker/prod/Dockerfile -t your-image:your-tag .
 ```
 
-### Remote Server Deployment
+## Remote Server Deployment
 
-To utilize this image from the GitHub Docker Registry, you might require an access token with the `packages:read` permission.
+To utilize this image from the GitHub Container Registry, you might require an access token with the `packages:read` permission.
