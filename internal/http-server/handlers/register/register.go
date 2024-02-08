@@ -70,7 +70,10 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 			return
 		}
 
-		response := response.Ok(fmt.Sprintf("user successfully created with ID: %d", userID))
+		response := response.Ok(
+			fmt.Sprintf("user successfully registered: %v", userID),
+			http.StatusCreated,
+		)
 		codec.JSONResponse(w, r, response)
 	}
 

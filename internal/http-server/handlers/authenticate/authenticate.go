@@ -9,7 +9,7 @@ import (
 
 func New() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		codec.JSONResponse(w, r, response.Ok(""))
+		codec.JSONResponse(w, r, response.Ok("", http.StatusOK))
 	}
 
 	return http.HandlerFunc(handler)

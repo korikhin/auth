@@ -85,7 +85,7 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 		}
 		jwt.SetAccessToken(w, accessToken)
 
-		response := response.Ok("user logged in successfully")
+		response := response.Ok("user logged in successfully", http.StatusOK)
 		codec.JSONResponse(w, r, response)
 	}
 

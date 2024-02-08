@@ -23,17 +23,20 @@ type Response struct {
 	Details string `json:"details,omitempty"`
 }
 
-func Ok(msg string) Response {
+func Ok(msg string, code int) Response {
+	if code < 200 || code > 299 {
+		code = http.StatusOK
+	}
 	return Response{
-		Code:    http.StatusOK,
+		Code:    code,
 		Status:  StatusOK,
 		Message: msg,
 	}
 }
 
 func Error(msg string, code int, details ...any) Response {
-	if code < 100 || code > 599 {
-		code = 0
+	if code < 400 || code > 599 {
+		code = http.StatusInternalServerError
 	}
 	r := Response{
 		Code:    code,
