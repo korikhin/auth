@@ -54,7 +54,7 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http
 				userID := claims.Subject
 				user, err := s.User(ctxStorage, userID)
 				if err != nil {
-					log.Error(fmt.Sprintf("cannot find user: %s", userID), logger.Error(err))
+					log.Error(fmt.Sprintf("cannot find user: %v", userID), logger.Error(err))
 					http.Error(w, "User not found", http.StatusInternalServerError)
 					return
 				}

@@ -2,9 +2,7 @@ package register
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -35,12 +33,6 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 
 		err := codec.DecodeJSON(r.Body, c)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				log.Error("request body is empty")
-				codec.JSONResponse(w, r, response.EmptyRequest)
-				return
-			}
-
 			log.Error("failed to decode request body", logger.Error(err))
 			codec.JSONResponse(w, r, response.InternalError)
 			return

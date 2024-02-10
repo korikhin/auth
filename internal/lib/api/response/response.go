@@ -6,9 +6,14 @@ import (
 	"strings"
 )
 
+// Statuses
 const (
 	StatusOK    = "ok"
 	StatusError = "error"
+)
+
+const (
+	maxDetailsLength = 256
 )
 
 var (
@@ -49,7 +54,12 @@ func Error(msg string, code int, details ...any) Response {
 		for _, d := range details {
 			m = append(m, fmt.Sprint(d))
 		}
-		r.Details = strings.Join(m, ", ")
+
+		detailsJoined := strings.Join(m, ", ")
+		if len(detailsJoined) > maxDetailsLength {
+			detailsJoined = detailsJoined[:maxDetailsLength]
+		}
+		r.Details = detailsJoined
 	}
 
 	return r
