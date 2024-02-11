@@ -13,7 +13,8 @@ const (
 )
 
 const (
-	maxDetailsLength = 256
+	detailsMaxLength = 256
+	detailsEtc       = " [...]"
 )
 
 var (
@@ -56,8 +57,11 @@ func Error(msg string, code int, details ...any) Response {
 		}
 
 		detailsJoined := strings.Join(m, ", ")
-		if len(detailsJoined) > maxDetailsLength {
-			detailsJoined = detailsJoined[:maxDetailsLength]
+		if len(detailsJoined) > detailsMaxLength {
+			detailsJoined = fmt.Sprintf(
+				"%s%s",
+				detailsJoined[:detailsMaxLength-len(detailsEtc)], detailsEtc,
+			)
 		}
 		r.Details = detailsJoined
 	}

@@ -36,7 +36,7 @@ func main() {
 	}
 
 	var configPath string
-	flag.StringVar(&configPath, "config", "", "Path to config YAML file (local development only)")
+	flag.StringVar(&configPath, "config", "", "Path to config YAML file (development only)")
 	flag.Parse()
 
 	// Config and Logger setup
