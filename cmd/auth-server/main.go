@@ -26,17 +26,18 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Description:")
-		fmt.Fprintln(flag.CommandLine.Output(), "   - Studopolis Authentication Server")
-		fmt.Fprintf(flag.CommandLine.Output(), "   - https://github.com/studopolis/auth-server\n\n")
-		fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
+		w := flag.CommandLine.Output()
+		fmt.Fprintln(w, "Description:")
+		fmt.Fprintln(w, "   - Studopolis Authentication Server")
+		fmt.Fprintln(w, "   - https://github.com/studopolis/auth-server")
+		fmt.Fprintln(w, "Flags:")
 		flag.VisitAll(func(f *flag.Flag) {
-			fmt.Fprintf(flag.CommandLine.Output(), "   --%-14s %s\n", f.Name, f.Usage)
+			fmt.Fprintf(w, "   --%-14s %s\n", f.Name, f.Usage)
 		})
 	}
 
 	var configPath string
-	flag.StringVar(&configPath, "config", "", "Path to config YAML file (development only)")
+	flag.StringVar(&configPath, "config", "", "Path to config file (for development use only)")
 	flag.Parse()
 
 	// Config and Logger setup
@@ -108,8 +109,7 @@ func main() {
 	go func() {
 		time.Sleep(config.HTTPServer.HealthTimeout)
 
-		_, err := net.Dial("tcp", server.Addr)
-		if err != nil {
+		if _, err := net.Dial("tcp", server.Addr); err != nil {
 			log.Error("server health check failed", logger.Error(err))
 			healthCheckPassed <- false
 		}

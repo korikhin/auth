@@ -35,7 +35,7 @@ type HTTPServer struct {
 
 type CORS struct {
 	AllowedOrigins []string `yaml:"allowed-origins" koanf:"allowed-origins"`
-	MaxAge         int      `yaml:"max-age" koanf:"max-age"`
+	MaxAge         int      `yaml:"max-age-seconds" koanf:"max-age-seconds"`
 }
 
 type JWT struct {
@@ -104,7 +104,7 @@ func MustLoad(path string) *Config {
 		}
 	}
 
-	if err := k.Load(kenv.Provider(prefix, ".", Env2YAMLVariableParser(prefix)), nil); err != nil {
+	if err := k.Load(kenv.Provider(prefix, ".", Env2ConfigParser(prefix)), nil); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 
@@ -115,7 +115,7 @@ func MustLoad(path string) *Config {
 	return cfg
 }
 
-func Env2YAMLVariableParser(p string) func(string) string {
+func Env2ConfigParser(p string) func(string) string {
 	return func(s string) string {
 		s = strings.TrimPrefix(s, p)
 		s = strings.Replace(s, "__", ".", -1)

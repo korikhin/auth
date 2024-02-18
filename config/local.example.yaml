@@ -3,7 +3,7 @@
 cors:
   allowed-origins:
     - "https://mysite.com"
-  max-age: 600
+  max-age-seconds: 600
 http-server:
   address: "localhost:8080"
   read-timeout: 5s
