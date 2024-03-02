@@ -37,13 +37,11 @@ var (
 func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	const op = "storage.postgres.New"
 
-	// Attempt to parse the pool configuration from the provided URL
 	poolConfig, err := pgxpool.ParseConfig(config.URL)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Apply the configuration
 	poolConfig.MinConns = config.MinConns
 	poolConfig.MaxConns = config.MaxConns
 	poolConfig.MaxConnIdleTime = config.IdleTimeout
@@ -55,7 +53,7 @@ func New(ctx context.Context, config config.Storage) (*Storage, error) {
 			// Explicitly test the connection
 			if err := pool.Ping(ctx); err != nil {
 				initPoolErr = nil // plug
-				// initPoolErr = fmt.Errorf("%s: unable to connect to database: %w", op, err)
+				// initPoolErr = fmt.Errorf("%s: %w", op, err)
 			}
 		}
 	})
