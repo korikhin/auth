@@ -27,17 +27,16 @@ import (
 func main() {
 	flag.Usage = func() {
 		w := flag.CommandLine.Output()
-		fmt.Fprintln(w, "Description:")
-		fmt.Fprintln(w, "   - Studopolis Authentication Server")
-		fmt.Fprintln(w, "   - https://github.com/studopolis/auth-server")
-		fmt.Fprintln(w, "Flags:")
+		fmt.Fprintln(w, "Studopolis Authentication Server")
+		fmt.Fprintln(w, "https://github.com/studopolis/auth-server")
+		fmt.Fprintln(w, "\nFlags:")
 		flag.VisitAll(func(f *flag.Flag) {
-			fmt.Fprintf(w, "   --%-14s %s\n", f.Name, f.Usage)
+			fmt.Fprintf(w, "  --%-15s %s (default: %q)\n", f.Name, f.Usage, f.DefValue)
 		})
 	}
 
 	var configPath string
-	flag.StringVar(&configPath, "config", "", "Path to config file (for development use only)")
+	flag.StringVar(&configPath, "config", "", "Path to config file")
 	flag.Parse()
 
 	// Config and Logger setup

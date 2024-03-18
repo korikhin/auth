@@ -24,7 +24,7 @@ func Public(r *mux.Router, log *slog.Logger, a *jwt.JWTService, s *storage.Stora
 	emptyRequest := requestMiddleware.CheckRequestBodyNotEmpty(log)
 
 	health := health.New()
-	r.Handle("/v1/health", health).Methods(http.MethodGet)
+	r.Handle("/v1/health", health)
 
 	register := register.New(log, s)
 	r.Handle("/v1/users", emptyRequest(register)).Methods(http.MethodPost)
@@ -37,5 +37,5 @@ func Protected(r *mux.Router, log *slog.Logger, s *storage.Storage) {
 	// emptyRequest := requestMiddleware.CheckRequestBodyNotEmpty(log)
 
 	auth := authenticate.New()
-	r.Handle("/v1/auth", auth).Methods(http.MethodGet)
+	r.Handle("/v1/auth", auth)
 }
