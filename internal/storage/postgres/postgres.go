@@ -34,6 +34,14 @@ var (
 	poolOnce sync.Once
 )
 
+func sanitizeError(err error) error {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return storage.ErrConnectionFailed
+	}
+	return err
+}
+
 func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	const op = "storage.postgres.New"
 
@@ -52,8 +60,9 @@ func New(ctx context.Context, config config.Storage) (*Storage, error) {
 		if initPoolErr == nil {
 			// Explicitly test the connection
 			if err := pool.Ping(ctx); err != nil {
-				initPoolErr = nil // plug
-				// initPoolErr = fmt.Errorf("%s: %w", op, err)
+				// initPoolErr = nil // plug
+				err = sanitizeError(err)
+				initPoolErr = fmt.Errorf("%s: %w", op, err)
 			}
 		}
 	})
@@ -103,6 +112,7 @@ func (s *Storage) User(ctx context.Context, id string) (*models.User, error) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
+		err = sanitizeError(err)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -128,6 +138,7 @@ func (s *Storage) UserByEmail(ctx context.Context, email string) (*models.User, 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
+		err = sanitizeError(err)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -155,6 +166,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, hash []byte) (uint
 		if errors.As(err, &pgErr) && codes.IsIntegrityConstraintViolation(pgErr.Code) {
 			return 0, fmt.Errorf("%s: %w", op, storage.ErrUserAlreadyExists)
 		}
+		err = sanitizeError(err)
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -166,6 +178,7 @@ func (s *Storage) Ping(ctx context.Context) error {
 
 	err := s.pool.Ping(ctx)
 	if err != nil {
+		sanitizeError(err)
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
