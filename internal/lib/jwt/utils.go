@@ -1,15 +1,12 @@
 package jwt
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	httplib "github.com/studopolis/auth-server/internal/lib/http"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func GetAccessToken(r *http.Request) (string, error) {
@@ -56,18 +53,4 @@ func SetRefreshToken(w http.ResponseWriter, token string, exp time.Time) {
 	}
 
 	http.SetCookie(w, c)
-}
-
-func expiredOnly(err error) bool {
-	if errors.Is(err, jwt.ErrTokenExpired) {
-		if errs, ok := err.(interface{ Unwrap() []error }); ok {
-			claimErrs := errs.Unwrap()[1]
-			if errs, ok = claimErrs.(interface{ Unwrap() []error }); ok {
-				if len(errs.Unwrap()) == 1 {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }

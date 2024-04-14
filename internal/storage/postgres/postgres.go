@@ -30,62 +30,95 @@ type Storage struct {
 }
 
 var (
-	pool     *pgxpool.Pool
-	poolOnce sync.Once
+	poolOnce  sync.Once
+	pool      *pgxpool.Pool
+	initErr   error
+	needsInit bool = true
+	initMu    sync.Mutex
 )
 
+// TODO: replace connection errors with custom error
+// Prevent revealing of sensetive info, s.a. connection details etc.
 func sanitizeError(err error) error {
-	var pgErr *pgconn.PgError
-	if !errors.As(err, &pgErr) {
-		return storage.ErrConnectionFailed
-	}
 	return err
+
+	// var pgErr *pgconn.PgError
+	// if !errors.As(err, &pgErr) {
+	// 	return storage.ErrConnectionFailed
+	// }
+	// return err
 }
 
-func New(ctx context.Context, config config.Storage) (*Storage, error) {
-	const op = "storage.postgres.New"
-
+func initializePool(ctx context.Context, config config.Storage) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(config.URL)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, err
 	}
 
 	poolConfig.MinConns = config.MinConns
 	poolConfig.MaxConns = config.MaxConns
 	poolConfig.MaxConnIdleTime = config.IdleTimeout
 
-	var initPoolErr error
-	poolOnce.Do(func() {
-		pool, initPoolErr = pgxpool.NewWithConfig(ctx, poolConfig)
-		if initPoolErr == nil {
-			// Explicitly test the connection
-			if err := pool.Ping(ctx); err != nil {
-				// initPoolErr = nil // plug
-				err = sanitizeError(err)
-				initPoolErr = fmt.Errorf("%s: %w", op, err)
-			}
-		}
-	})
-
-	if initPoolErr != nil {
-		return nil, initPoolErr
+	newPool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	opts := &Options{
+	if err := newPool.Ping(ctx); err != nil {
+		// TODO: Uncomment later
+		// return nil, err
+	}
+
+	return newPool, nil
+}
+
+// New initializes a new Storage instance with a database connection pool.
+// It ensures a thread-safe pool creation which persists across multiple
+// calls until Stop is invoked.
+func New(ctx context.Context, config config.Storage) (*Storage, error) {
+	const op = "storage.postgres.New"
+
+	initMu.Lock()
+	defer initMu.Unlock()
+
+	if needsInit {
+		initCtx, cancel := context.WithTimeout(ctx, config.StartTimeout)
+		defer cancel()
+
+		poolOnce.Do(func() {
+			pool, initErr = initializePool(initCtx, config)
+			if initErr == nil {
+				needsInit = false
+			}
+		})
+	}
+
+	if initErr != nil {
+		return nil, fmt.Errorf("%s: %w", op, initErr)
+	}
+
+	opts := Options{
 		ReadTimeout:  config.ReadTimeout,
 		WriteTimeout: config.WriteTimeout,
 	}
 
-	return &Storage{pool: pool, Options: *opts}, nil
+	return &Storage{pool: pool, Options: opts}, nil
 }
 
+// Stop closes the connection pool and resets its state to allow
+// reinitialization with New.
+//
+// Must call New to reuse the pool after Stop.
 func (s *Storage) Stop() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	initMu.Lock()
+	defer initMu.Unlock()
 
-	if s.pool != nil {
+	if !needsInit && s.pool != nil {
 		s.pool.Close()
 		s.pool = nil
+
+		poolOnce = sync.Once{}
+		needsInit = true
 	}
 }
 

@@ -2,35 +2,41 @@ package logger
 
 import (
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/studopolis/auth-server/internal/config"
+	"github.com/studopolis/auth-server/internal/domain/models"
 )
 
 func Component(c string) slog.Attr {
-	return slog.Attr{Key: "component", Value: slog.StringValue(c)}
+	return slog.String("component", c)
 }
 
 func Duration(d time.Duration) slog.Attr {
-	return slog.Attr{Key: "duration", Value: slog.StringValue(d.String())}
+	return slog.Duration("duration", d)
 }
 
 func Error(err error) slog.Attr {
-	return slog.Attr{Key: "error", Value: slog.StringValue(err.Error())}
+	return slog.Any("error", err)
 }
 
 func Operation(op string) slog.Attr {
-	return slog.Attr{Key: "op", Value: slog.StringValue(op)}
+	return slog.String("operation", op)
 }
 
 func RequestID(id string) slog.Attr {
-	return slog.Attr{Key: "request_id", Value: slog.StringValue(id)}
+	return slog.String("request_id", id)
+}
+
+func Signal(s os.Signal) slog.Attr {
+	return slog.String("signal", s.String())
 }
 
 func Stage(e config.Stage) slog.Attr {
-	return slog.Attr{Key: "stage", Value: slog.StringValue(string(e))}
+	return slog.String("stage", string(e))
 }
 
-func User(id string) slog.Attr {
-	return slog.Attr{Key: "user", Value: slog.StringValue(id)}
+func User(u models.User) slog.Attr {
+	return slog.Any("user", u)
 }

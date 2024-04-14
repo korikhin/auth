@@ -1,9 +1,5 @@
 package http
 
-import (
-	ctx "github.com/studopolis/auth-server/internal/lib/context"
-)
-
 // Headers
 const (
 	HeaderAccept          = "Accept"
@@ -30,11 +26,7 @@ const (
 // Content types
 const (
 	ContentTypeJSON = "application/json"
-)
 
-// Context keys
-var (
-	StatusCtxKey  = &ctx.ContextKey{Name: "Status"}
-	RequestCtxKey = &ctx.ContextKey{Name: "RequestID"}
-	UserCtxKey    = &ctx.ContextKey{Name: "User"}
+	// TODO: Ensure that the API complies with RFC 7807
+	ContentTypeProblemJSON = "application/problem+json"
 )

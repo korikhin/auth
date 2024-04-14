@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	ctxlib "github.com/studopolis/auth-server/internal/lib/context"
 	httplib "github.com/studopolis/auth-server/internal/lib/http"
 )
 
@@ -31,10 +32,10 @@ func init() {
 		b64 = strings.NewReplacer("+", "", "/", "").Replace(b64)
 	}
 
-	prefix = fmt.Sprintf("%s/%s", hostname, b64[0:10])
+	prefix = fmt.Sprintf("%s/%s", hostname, b64[:10])
 }
 
-func New() func(next http.Handler) http.Handler {
+func ID() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -45,7 +46,7 @@ func New() func(next http.Handler) http.Handler {
 				requestID = fmt.Sprintf("%s-%06d", prefix, myID)
 			}
 
-			ctx = context.WithValue(ctx, httplib.RequestCtxKey, requestID)
+			ctx = context.WithValue(ctx, ctxlib.RequestKey, requestID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 
@@ -58,7 +59,7 @@ func GetID(ctx context.Context) string {
 		return ""
 	}
 
-	if id, ok := ctx.Value(httplib.RequestCtxKey).(string); ok {
+	if id, ok := ctx.Value(ctxlib.RequestKey).(string); ok {
 		return id
 	}
 

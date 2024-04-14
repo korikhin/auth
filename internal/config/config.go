@@ -49,6 +49,7 @@ type Storage struct {
 	URL          string        `yaml:"url" koanf:"url"`
 	MinConns     int32         `yaml:"min-conns" koanf:"min-conns"`
 	MaxConns     int32         `yaml:"max-conns" koanf:"max-conns"`
+	StartTimeout time.Duration `yaml:"start-timeout" koanf:"start-timeout"`
 	ReadTimeout  time.Duration `yaml:"read-timeout" koanf:"read-timeout"`
 	WriteTimeout time.Duration `yaml:"write-timeout" koanf:"write-timeout"`
 	IdleTimeout  time.Duration `yaml:"idle-timeout" koanf:"idle-timeout"`
@@ -89,7 +90,7 @@ func MustLoad(path string) *Config {
 		)
 	}
 
-	cfg := Default()
+	cfg := defaultConfig()
 	k := koanf.New(".")
 	if err := k.Load(kstr.Provider(cfg, Tag), nil); err != nil {
 		log.Fatalf("error setting default config values: %v", err)
@@ -104,7 +105,7 @@ func MustLoad(path string) *Config {
 		}
 	}
 
-	if err := k.Load(kenv.Provider(prefix, ".", Env2ConfigParser(prefix)), nil); err != nil {
+	if err := k.Load(kenv.Provider(prefix, ".", env2Config(prefix)), nil); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 
@@ -115,16 +116,17 @@ func MustLoad(path string) *Config {
 	return cfg
 }
 
-func Env2ConfigParser(p string) func(string) string {
+func env2Config(p string) func(string) string {
 	return func(s string) string {
 		s = strings.TrimPrefix(s, p)
 		s = strings.Replace(s, "__", ".", -1)
 		s = strings.Replace(s, "_", "-", -1)
+
 		return strings.ToLower(s)
 	}
 }
 
-func Default() *Config {
+func defaultConfig() *Config {
 	return &Config{
 		CORS: CORS{
 			AllowedOrigins: []string{"*"},
@@ -135,8 +137,8 @@ func Default() *Config {
 			ReadTimeout:     5 * time.Second,
 			WriteTimeout:    5 * time.Second,
 			IdleTimeout:     60 * time.Second,
-			ShutdownTimeout: 10 * time.Second,
-			HealthTimeout:   1 * time.Second,
+			ShutdownTimeout: 20 * time.Second,
+			HealthTimeout:   15 * time.Minute,
 		},
 		JWT: JWT{
 			AccessTTL:  15 * time.Minute,
@@ -146,6 +148,7 @@ func Default() *Config {
 		Storage: Storage{
 			MinConns:     1,
 			MaxConns:     1,
+			StartTimeout: 60 * time.Second,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 5 * time.Second,
 			IdleTimeout:  30 * time.Minute,

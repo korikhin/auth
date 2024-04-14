@@ -33,6 +33,7 @@ func Ok(msg string, code int) Response {
 	if code < 200 || code > 299 {
 		code = http.StatusOK
 	}
+
 	return Response{
 		Code:    code,
 		Status:  StatusOK,
@@ -57,6 +58,7 @@ func Error(msg string, code int, details ...any) Response {
 		}
 
 		detailsJoined := strings.Join(m, ", ")
+		// Trim details
 		if len(detailsJoined) > detailsMaxLength {
 			detailsJoined = fmt.Sprintf(
 				"%s%s",

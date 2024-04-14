@@ -2,7 +2,7 @@
 
 cors:
   allowed-origins:
-    - "https://mysite.com"
+    - "https://example.com"
   max-age-seconds: 600
 http-server:
   address: "localhost:8080"
@@ -17,6 +17,6 @@ jwt:
   refresh-ttl: 24h
   leeway: 2s
 storage:
-    url: "postgres://user:password@localhost:5432/postgres"
-    read-timeout: 5s
-    write-timeout: 5s
+  url: "postgres://user:password@localhost:5432/postgres"
+  read-timeout: 5s
+  write-timeout: 5s

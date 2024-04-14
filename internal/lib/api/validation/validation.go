@@ -18,6 +18,7 @@ func Validate(c *Credentials) error {
 		errs := err.(validator.ValidationErrors)
 		return formatErrors(errs)
 	}
+
 	return nil
 }
 
@@ -30,8 +31,9 @@ func formatErrors(e validator.ValidationErrors) error {
 		case "email":
 			msg = append(msg, fmt.Sprintf("field %s is not a valid email", err.Field()))
 		default:
-			msg = append(msg, fmt.Sprintf("field %s is  not valid", err.Field()))
+			msg = append(msg, fmt.Sprintf("field %s is not valid", err.Field()))
 		}
 	}
+
 	return errors.New(strings.Join(msg, ", "))
 }

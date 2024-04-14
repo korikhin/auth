@@ -7,24 +7,23 @@ import (
 	"log/slog"
 	"net/http"
 
-	httplib "github.com/studopolis/auth-server/internal/lib/http"
+	ctxlib "github.com/studopolis/auth-server/internal/lib/context"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
-	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 )
 
+// todo: refactor token (re)issuing
 func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http.Handler) http.Handler {
 	log.Info("jwt middleware enabled")
-	log = log.With(
-		logger.Component("middleware/jwt"),
-	)
+	log = log.With(logger.Component("middleware/jwt"))
 
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			log := log.With(
-				logger.RequestID(requestMiddleware.GetID(r.Context())),
+				logger.RequestID(reqMW.GetID(r.Context())),
 			)
 
 			accessToken, err := jwt.GetAccessToken(r)
@@ -96,7 +95,7 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http
 				jwt.SetAccessToken(w, accessToken)
 			}
 
-			ctxHTTP := context.WithValue(r.Context(), httplib.UserCtxKey, claims)
+			ctxHTTP := context.WithValue(r.Context(), ctxlib.UserKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctxHTTP))
 		}
 

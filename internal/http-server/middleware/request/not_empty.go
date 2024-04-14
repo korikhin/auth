@@ -7,10 +7,8 @@ import (
 	"github.com/studopolis/auth-server/internal/lib/logger"
 )
 
-func CheckRequestBodyNotEmpty(log *slog.Logger) func(next http.Handler) http.Handler {
-	log = log.With(
-		logger.Component("middleware/request"),
-	)
+func NotEmpty(log *slog.Logger) func(next http.Handler) http.Handler {
+	log = log.With(logger.Component("middleware/request"))
 
 	return func(next http.Handler) http.Handler {
 		handler := func(w http.ResponseWriter, r *http.Request) {
@@ -18,12 +16,10 @@ func CheckRequestBodyNotEmpty(log *slog.Logger) func(next http.Handler) http.Han
 				logger.RequestID(GetID(r.Context())),
 			)
 
-			if r.Method == http.MethodPost {
-				if r.Body == nil || r.ContentLength == 0 {
-					log.Error("request body is empty")
-					http.Error(w, "Request body is empty", http.StatusBadRequest)
-					return
-				}
+			if r.Method == http.MethodPost && (r.Body == nil || r.ContentLength == 0) {
+				log.Error("request body is empty")
+				http.Error(w, "Request body is empty", http.StatusBadRequest)
+				return
 			}
 
 			next.ServeHTTP(w, r)

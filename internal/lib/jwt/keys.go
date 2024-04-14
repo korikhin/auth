@@ -1,4 +1,4 @@
-package secrets
+package jwt
 
 import (
 	"crypto/ecdsa"
@@ -21,7 +21,7 @@ const (
 	keyTypePublic  = "PUBLIC KEY"
 )
 
-func GetPrivateKey() (*ecdsa.PrivateKey, error) {
+func getPrivateKey() (*ecdsa.PrivateKey, error) {
 	data, err := os.ReadFile(privateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read private key file")
@@ -40,7 +40,7 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 	return key, nil
 }
 
-func GetPublicKey() (*ecdsa.PublicKey, error) {
+func getPublicKey() (*ecdsa.PublicKey, error) {
 	data, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read public key file")

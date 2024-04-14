@@ -14,26 +14,26 @@ import (
 
 	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/http-server/handlers"
-	"github.com/studopolis/auth-server/internal/lib/http/cors"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
-	jwtMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
-	logMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
-	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	logMW "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
+	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	corMW "github.com/studopolis/auth-server/internal/lib/http/cors"
 )
 
+func usage() {
+	w := flag.CommandLine.Output()
+	_, _ = fmt.Fprintln(w, "Authentication Server\nFlags:")
+
+	flag.VisitAll(func(f *flag.Flag) {
+		_, _ = fmt.Fprintf(w, "  --%-15s %s (default: %q)\n", f.Name, f.Usage, f.DefValue)
+	})
+}
+
 func main() {
-	flag.Usage = func() {
-		w := flag.CommandLine.Output()
-		fmt.Fprintln(w, "Studopolis Authentication Server")
-		fmt.Fprintln(w, "https://github.com/studopolis/auth-server")
-		fmt.Fprintln(w, "\nFlags:")
-		flag.VisitAll(func(f *flag.Flag) {
-			fmt.Fprintf(w, "  --%-15s %s (default: %q)\n", f.Name, f.Usage, f.DefValue)
-		})
-	}
+	flag.Usage = usage
 
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "Path to config file")
@@ -43,7 +43,7 @@ func main() {
 	config := config.MustLoad(configPath)
 	log := logger.New(config.Stage)
 
-	log.Info("starting auth service", logger.Stage(config.Stage))
+	log.Info("starting auth service...", logger.Stage(config.Stage))
 	log.Debug("debug messages are enabled")
 
 	// Storage setup
@@ -53,35 +53,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	corMW := corMW.New(config.CORS)
+	ridMW := reqMW.ID()
+	logMW := logMW.New(log)
+
 	// Router setup
 	router := handlers.NewRouter()
+	router.Use(corMW, ridMW, logMW)
 
-	// CORS
-	cors := cors.New(config.CORS)
-	router.Use(cors)
-
-	// Request ID middleware
-	requestMiddleware := requestMiddleware.New()
-	router.Use(requestMiddleware)
-
-	// Logger middleware
-	logMiddleware := logMiddleware.New(log)
-	router.Use(logMiddleware)
-
-	// JWT: service
 	jwtService := jwt.NewService(config.JWT)
 
-	// JWT: middleware
-	jwtMiddleware := jwtMiddleware.New(log, jwtService, storage)
-
-	// Public handlers
-	publicRouter := router.PathPrefix("/").Subrouter()
-	handlers.Public(publicRouter, log, jwtService, storage)
-
-	// Protected handlers
-	protectedRouter := router.PathPrefix("/").Subrouter()
-	protectedRouter.Use(jwtMiddleware)
-	handlers.Protected(protectedRouter, log, storage)
+	handlers.Public(router, log, jwtService, storage)
+	handlers.Protected(router, log, jwtService, storage)
 
 	// Server setup
 	server := &http.Server{
@@ -103,39 +86,50 @@ func main() {
 			}
 		}
 	}()
+	log.Info("server started")
 
-	healthCheckPassed := make(chan bool, 1)
+	healthCheckTerminate := make(chan struct{}, 1)
 	go func() {
-		time.Sleep(config.HTTPServer.HealthTimeout)
+		log := log.With(logger.Component("system/health"))
 
-		if _, err := net.Dial("tcp", server.Addr); err != nil {
-			log.Error("server health check failed", logger.Error(err))
-			healthCheckPassed <- false
+		ticker := time.NewTicker(config.HTTPServer.HealthTimeout)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-healthCheckTerminate:
+				return
+			case <-ticker.C:
+				conn, err := net.Dial("tcp", server.Addr)
+				if err != nil {
+					log.Error("server health check failed", logger.Error(err))
+					continue
+				}
+				conn.Close()
+			}
+
+			// Health check is successful
+			log.Info("")
 		}
-		healthCheckPassed <- true
 	}()
 
-	select {
-	case <-shutdown:
-	case passed := <-healthCheckPassed:
-		if passed {
-			log.Info("server started")
-			<-shutdown
-		}
-	}
+	shutdownSignal := <-shutdown
+	log.Info("recieved shutdown signal", logger.Signal(shutdownSignal))
 
-	log.Info("stopping server")
-	ctx, cancel := context.WithTimeout(context.Background(), config.HTTPServer.ShutdownTimeout)
-	defer cancel()
+	healthCheckTerminate <- struct{}{}
+	log.Info("stopping server...")
 
 	// Storage closing
 	storage.Stop()
 
 	// Server shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), config.HTTPServer.ShutdownTimeout)
+	defer cancel()
+
 	if err := server.Shutdown(ctx); err != nil {
 		log.Error("failed to stop server", logger.Error(err))
 		return
-	} else {
-		log.Info("server stopped")
 	}
+
+	log.Info("server stopped successfully")
 }

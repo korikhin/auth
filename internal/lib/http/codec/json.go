@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	ctxlib "github.com/studopolis/auth-server/internal/lib/context"
 	httplib "github.com/studopolis/auth-server/internal/lib/http"
 )
 
@@ -19,7 +20,7 @@ func JSONResponse(w http.ResponseWriter, r *http.Request, v interface{}) {
 	}
 
 	w.Header().Set(httplib.HeaderContentType, httplib.ContentTypeJSON)
-	if status, ok := r.Context().Value(httplib.StatusCtxKey).(int); ok {
+	if status, ok := r.Context().Value(ctxlib.StatusKey).(int); ok {
 		w.WriteHeader(status)
 	}
 	w.Write(buf.Bytes())

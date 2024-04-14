@@ -10,9 +10,6 @@ import (
 
 	"github.com/studopolis/auth-server/internal/config"
 	"github.com/studopolis/auth-server/internal/domain/models"
-	"github.com/studopolis/auth-server/internal/lib/secrets"
-
-	// "github.com/studopolis/auth-server/internal/lib/secrets"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -20,8 +17,8 @@ import (
 const (
 	headerAuthPrefix   = "Bearer"
 	refreshTokenCookie = "_studopolis.rt"
-	ScopeAccess        = "a"
-	ScopeRefresh       = "r"
+	scopeAccess        = "a"
+	scopeRefresh       = "r"
 )
 
 var (
@@ -42,7 +39,7 @@ type Claims struct {
 
 // Check required claims
 func (c Claims) Validate() error {
-	if c.TokenScope != ScopeAccess && c.TokenScope != ScopeRefresh {
+	if c.TokenScope != scopeAccess && c.TokenScope != scopeRefresh {
 		return ErrTokenInvalidScope
 	}
 
@@ -118,13 +115,13 @@ func (a *JWTService) load() {
 	const fatalMsg = "failed to initialize key management: please check system configuration"
 
 	a.once.Do(func() {
-		pk, err := secrets.GetPrivateKey()
+		pk, err := getPrivateKey()
 		if err != nil {
 			log.Fatal(fatalMsg)
 		}
 		a.pk = pk
 
-		pubk, err := secrets.GetPublicKey()
+		pubk, err := getPublicKey()
 		if err != nil {
 			log.Fatal(fatalMsg)
 		}
@@ -143,7 +140,7 @@ func (a *JWTService) validate(token, scope string, m *ValidationMask) (*Claims, 
 
 	var isExpiredOnly bool
 	if err != nil {
-		isExpiredOnly = expiredOnly(err)
+		isExpiredOnly = ExpiredOnly(err)
 		if !isExpiredOnly {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -161,16 +158,15 @@ func (a *JWTService) validate(token, scope string, m *ValidationMask) (*Claims, 
 	if isExpiredOnly {
 		return c, ErrTokenExpiredOnly
 	}
-
 	return c, nil
 }
 
 func (a *JWTService) ValidateAccess(token string, m *ValidationMask) (*Claims, error) {
-	return a.validate(token, ScopeAccess, m)
+	return a.validate(token, scopeAccess, m)
 }
 
 func (a *JWTService) ValidateRefresh(token string, m *ValidationMask) (*Claims, error) {
-	return a.validate(token, ScopeRefresh, m)
+	return a.validate(token, scopeRefresh, m)
 }
 
 func (a *JWTService) issue(user *models.User, scope string) (string, time.Time, error) {
@@ -180,9 +176,9 @@ func (a *JWTService) issue(user *models.User, scope string) (string, time.Time, 
 
 	var ttl time.Duration
 	switch scope {
-	case ScopeAccess:
+	case scopeAccess:
 		ttl = a.Options.AccessTTL
-	case ScopeRefresh:
+	case scopeRefresh:
 		ttl = a.Options.RefreshTTL
 	default:
 		return "", time.Time{}, fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)
@@ -211,9 +207,9 @@ func (a *JWTService) issue(user *models.User, scope string) (string, time.Time, 
 }
 
 func (a *JWTService) IssueAccess(user *models.User) (string, time.Time, error) {
-	return a.issue(user, ScopeAccess)
+	return a.issue(user, scopeAccess)
 }
 
 func (a *JWTService) IssueRefresh(user *models.User) (string, time.Time, error) {
-	return a.issue(user, ScopeRefresh)
+	return a.issue(user, scopeRefresh)
 }

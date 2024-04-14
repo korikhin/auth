@@ -4,38 +4,52 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/http-server/handlers/authenticate"
+	"github.com/studopolis/auth-server/internal/http-server/handlers/authn"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/health"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/login"
 	"github.com/studopolis/auth-server/internal/http-server/handlers/register"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
-	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	jwtMW "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
+	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
 
 	"github.com/gorilla/mux"
 )
 
+// TODO: replace with net/http someday
 func NewRouter() *mux.Router {
 	return mux.NewRouter().PathPrefix("/api").Subrouter()
 }
 
 func Public(r *mux.Router, log *slog.Logger, a *jwt.JWTService, s *storage.Storage) {
-	emptyRequest := requestMiddleware.CheckRequestBodyNotEmpty(log)
+	p := r.PathPrefix("/").Subrouter()
+
+	// MWs
+	empMW := reqMW.NotEmpty(log)
 
 	health := health.New()
-	r.Handle("/v1/health", health)
+	p.Handle("/v1/health", health)
 
 	register := register.New(log, s)
-	r.Handle("/v1/users", emptyRequest(register)).Methods(http.MethodPost)
+	p.Handle("/v1/users", empMW(register)).Methods(http.MethodPost)
 
 	login := login.New(log, a, s)
-	r.Handle("/v1/auth", emptyRequest(login)).Methods(http.MethodPost)
+	p.Handle("/v1/auth", empMW(login)).Methods(http.MethodPost)
 }
 
-func Protected(r *mux.Router, log *slog.Logger, s *storage.Storage) {
-	// emptyRequest := requestMiddleware.CheckRequestBodyNotEmpty(log)
+func Protected(r *mux.Router, log *slog.Logger, a *jwt.JWTService, s *storage.Storage) {
+	p := r.PathPrefix("/").Subrouter()
 
-	auth := authenticate.New()
-	r.Handle("/v1/auth", auth)
+	// MWs
+	// empMW := reqMW.NotEmpty(log)
+	jwtMW := jwtMW.New(log, a, s)
+
+	p.Use(jwtMW)
+
+	authn := authn.New()
+	p.Handle("/v1/auth", authn)
+
+	// deleteUser := delete.New()
+	// p.Handle("/v1/users/{id}", deleteUser).Methods(http.MethodDelete)
 }

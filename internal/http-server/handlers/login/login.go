@@ -11,24 +11,26 @@ import (
 	"github.com/studopolis/auth-server/internal/lib/http/codec"
 	"github.com/studopolis/auth-server/internal/lib/jwt"
 	"github.com/studopolis/auth-server/internal/lib/logger"
-	"github.com/studopolis/auth-server/internal/lib/secrets"
 	st "github.com/studopolis/auth-server/internal/storage"
 	storage "github.com/studopolis/auth-server/internal/storage/postgres"
 
-	requestMiddleware "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
 	errInvalidCredentials = response.Error("invalid credentials", http.StatusUnauthorized)
 )
 
+// todo: refactor token (re)issuing
 func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.login.New"
 
 		log := log.With(
 			logger.Operation(op),
-			logger.RequestID(requestMiddleware.GetID(r.Context())),
+			logger.RequestID(reqMW.GetID(r.Context())),
 		)
 
 		c := &validation.Credentials{}
@@ -56,7 +58,7 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 			return
 		}
 
-		if err = secrets.CompareHashAndPassword(user.PasswordHash, c.Password); err != nil {
+		if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(c.Password)); err != nil {
 			log.Info("invalid credentials", logger.Error(err))
 			codec.JSONResponse(w, r, errInvalidCredentials)
 			return
