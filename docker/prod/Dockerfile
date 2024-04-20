@@ -18,8 +18,8 @@ WORKDIR /app
 COPY --from=build-stage /build/app ./app
 
 LABEL org.opencontainers.image.description="Authentication Server Image"
-LABEL org.opencontainers.image.source="https://github.com/studopolis/auth-server"
-LABEL org.opencontainers.image.licenses=""
+LABEL org.opencontainers.image.source="https://github.com/korikhin/auth"
+LABEL org.opencontainers.image.licenses="MIT"
 
 EXPOSE 8080
 ENTRYPOINT ["./app"]

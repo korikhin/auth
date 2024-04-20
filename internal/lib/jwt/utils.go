@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	httplib "github.com/studopolis/auth-server/internal/lib/http"
+	httplib "github.com/korikhin/auth/internal/lib/http"
 )
 
 func GetAccessToken(r *http.Request) (string, error) {

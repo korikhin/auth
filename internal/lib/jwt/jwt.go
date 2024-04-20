@@ -8,15 +8,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/studopolis/auth-server/internal/config"
-	"github.com/studopolis/auth-server/internal/domain/models"
+	"github.com/korikhin/auth/internal/config"
+	"github.com/korikhin/auth/internal/domain/models"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
 	headerAuthPrefix   = "Bearer"
-	refreshTokenCookie = "_studopolis.rt"
+	refreshTokenCookie = "_korikhin.rt"
 	scopeAccess        = "a"
 	scopeRefresh       = "r"
 )

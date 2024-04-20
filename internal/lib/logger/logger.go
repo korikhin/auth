@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/studopolis/auth-server/internal/config"
+	"github.com/korikhin/auth/internal/config"
 )
 
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {

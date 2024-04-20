@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/studopolis/auth-server/internal/config"
-	"github.com/studopolis/auth-server/internal/domain/models"
+	"github.com/korikhin/auth/internal/config"
+	"github.com/korikhin/auth/internal/domain/models"
 )
 
 func Component(c string) slog.Attr {

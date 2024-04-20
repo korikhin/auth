@@ -4,20 +4,20 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/http-server/handlers/authn"
-	"github.com/studopolis/auth-server/internal/http-server/handlers/health"
-	"github.com/studopolis/auth-server/internal/http-server/handlers/login"
-	"github.com/studopolis/auth-server/internal/http-server/handlers/register"
-	"github.com/studopolis/auth-server/internal/lib/jwt"
-	storage "github.com/studopolis/auth-server/internal/storage/postgres"
+	"github.com/korikhin/auth/internal/http-server/handlers/authn"
+	"github.com/korikhin/auth/internal/http-server/handlers/health"
+	"github.com/korikhin/auth/internal/http-server/handlers/login"
+	"github.com/korikhin/auth/internal/http-server/handlers/register"
+	"github.com/korikhin/auth/internal/lib/jwt"
+	storage "github.com/korikhin/auth/internal/storage/postgres"
 
-	jwtMW "github.com/studopolis/auth-server/internal/http-server/middleware/jwt"
-	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	jwtMW "github.com/korikhin/auth/internal/http-server/middleware/jwt"
+	reqMW "github.com/korikhin/auth/internal/http-server/middleware/request"
 
 	"github.com/gorilla/mux"
 )
 
-// TODO: replace with net/http someday
+// TODO: Replace with net/http someday
 func NewRouter() *mux.Router {
 	return mux.NewRouter().PathPrefix("/api").Subrouter()
 }

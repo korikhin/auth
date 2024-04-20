@@ -6,15 +6,15 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/lib/api/response"
-	"github.com/studopolis/auth-server/internal/lib/api/validation"
-	"github.com/studopolis/auth-server/internal/lib/http/codec"
-	"github.com/studopolis/auth-server/internal/lib/jwt"
-	"github.com/studopolis/auth-server/internal/lib/logger"
-	st "github.com/studopolis/auth-server/internal/storage"
-	storage "github.com/studopolis/auth-server/internal/storage/postgres"
+	"github.com/korikhin/auth/internal/lib/api/response"
+	"github.com/korikhin/auth/internal/lib/api/validation"
+	"github.com/korikhin/auth/internal/lib/http/codec"
+	"github.com/korikhin/auth/internal/lib/jwt"
+	"github.com/korikhin/auth/internal/lib/logger"
+	st "github.com/korikhin/auth/internal/storage"
+	storage "github.com/korikhin/auth/internal/storage/postgres"
 
-	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	reqMW "github.com/korikhin/auth/internal/http-server/middleware/request"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -23,7 +23,7 @@ var (
 	errInvalidCredentials = response.Error("invalid credentials", http.StatusUnauthorized)
 )
 
-// todo: refactor token (re)issuing
+// TODO?: Refactor token (re)issuing
 func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.login.New"

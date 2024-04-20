@@ -12,15 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/studopolis/auth-server/internal/config"
-	"github.com/studopolis/auth-server/internal/http-server/handlers"
-	"github.com/studopolis/auth-server/internal/lib/jwt"
-	"github.com/studopolis/auth-server/internal/lib/logger"
-	storage "github.com/studopolis/auth-server/internal/storage/postgres"
+	"github.com/korikhin/auth/internal/config"
+	"github.com/korikhin/auth/internal/http-server/handlers"
+	"github.com/korikhin/auth/internal/lib/jwt"
+	"github.com/korikhin/auth/internal/lib/logger"
+	storage "github.com/korikhin/auth/internal/storage/postgres"
 
-	logMW "github.com/studopolis/auth-server/internal/http-server/middleware/logger"
-	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
-	corMW "github.com/studopolis/auth-server/internal/lib/http/cors"
+	logMW "github.com/korikhin/auth/internal/http-server/middleware/logger"
+	reqMW "github.com/korikhin/auth/internal/http-server/middleware/request"
+	corMW "github.com/korikhin/auth/internal/lib/http/cors"
 )
 
 func usage() {
@@ -32,6 +32,7 @@ func usage() {
 	})
 }
 
+// TODO: Tests please
 func main() {
 	flag.Usage = usage
 

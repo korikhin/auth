@@ -3,8 +3,8 @@ package health
 import (
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/lib/api/response"
-	"github.com/studopolis/auth-server/internal/lib/http/codec"
+	"github.com/korikhin/auth/internal/lib/api/response"
+	"github.com/korikhin/auth/internal/lib/http/codec"
 )
 
 func New() http.Handler {

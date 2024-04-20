@@ -34,12 +34,12 @@ Create chart name and version as used by the chart label
 Common labels
 */}}
 {{- define "authServer.labels" -}}
-helm.sh/chart: {{ include "authServer.chart" . }}
-{{ include "authServer.selectorLabels" . }}
+helm.sh/chart: {{ include "authServer.chart" . | quote }}
+{{ include "authServer.selectorLabels" . | nindent 2 }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end }}
 
 {{/*

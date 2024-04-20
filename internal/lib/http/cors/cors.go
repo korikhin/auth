@@ -3,8 +3,8 @@ package cors
 import (
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/config"
-	httplib "github.com/studopolis/auth-server/internal/lib/http"
+	"github.com/korikhin/auth/internal/config"
+	httplib "github.com/korikhin/auth/internal/lib/http"
 
 	"github.com/gorilla/handlers"
 )

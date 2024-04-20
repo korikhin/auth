@@ -6,13 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/lib/api/response"
-	"github.com/studopolis/auth-server/internal/lib/api/validation"
-	"github.com/studopolis/auth-server/internal/lib/http/codec"
-	"github.com/studopolis/auth-server/internal/lib/logger"
-	storage "github.com/studopolis/auth-server/internal/storage/postgres"
+	"github.com/korikhin/auth/internal/lib/api/response"
+	"github.com/korikhin/auth/internal/lib/api/validation"
+	"github.com/korikhin/auth/internal/lib/http/codec"
+	"github.com/korikhin/auth/internal/lib/logger"
+	storage "github.com/korikhin/auth/internal/storage/postgres"
 
-	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	reqMW "github.com/korikhin/auth/internal/http-server/middleware/request"
 
 	"golang.org/x/crypto/bcrypt"
 )

@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	ctxlib "github.com/studopolis/auth-server/internal/lib/context"
-	httplib "github.com/studopolis/auth-server/internal/lib/http"
+	ctxlib "github.com/korikhin/auth/internal/lib/context"
+	httplib "github.com/korikhin/auth/internal/lib/http"
 )
 
 func JSONResponse(w http.ResponseWriter, r *http.Request, v interface{}) {

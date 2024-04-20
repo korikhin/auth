@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/studopolis/auth-server/internal/lib/logger"
+	"github.com/korikhin/auth/internal/lib/logger"
 
-	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	reqMW "github.com/korikhin/auth/internal/http-server/middleware/request"
 )
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {

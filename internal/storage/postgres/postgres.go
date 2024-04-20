@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/studopolis/auth-server/internal/config"
-	"github.com/studopolis/auth-server/internal/domain/models"
-	"github.com/studopolis/auth-server/internal/storage"
+	"github.com/korikhin/auth/internal/config"
+	"github.com/korikhin/auth/internal/domain/models"
+	"github.com/korikhin/auth/internal/storage"
 
 	codes "github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -37,8 +37,9 @@ var (
 	initMu    sync.Mutex
 )
 
-// TODO: replace connection errors with custom error
-// Prevent revealing of sensetive info, s.a. connection details etc.
+// TODO: Replace connection errors with custom error
+//
+//	Prevent revealing of sensetive info, s.a. connection details etc.
 func sanitizeError(err error) error {
 	return err
 

@@ -7,15 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 
-	ctxlib "github.com/studopolis/auth-server/internal/lib/context"
-	"github.com/studopolis/auth-server/internal/lib/jwt"
-	"github.com/studopolis/auth-server/internal/lib/logger"
-	storage "github.com/studopolis/auth-server/internal/storage/postgres"
+	ctxlib "github.com/korikhin/auth/internal/lib/context"
+	"github.com/korikhin/auth/internal/lib/jwt"
+	"github.com/korikhin/auth/internal/lib/logger"
+	storage "github.com/korikhin/auth/internal/storage/postgres"
 
-	reqMW "github.com/studopolis/auth-server/internal/http-server/middleware/request"
+	reqMW "github.com/korikhin/auth/internal/http-server/middleware/request"
 )
 
-// todo: refactor token (re)issuing
+// TODO?: Refactor token (re)issuing
 func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http.Handler) http.Handler {
 	log.Info("jwt middleware enabled")
 	log = log.With(logger.Component("middleware/jwt"))

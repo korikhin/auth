@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/studopolis/auth-server/internal/lib/logger"
+	"github.com/korikhin/auth/internal/lib/logger"
 )
 
 func NotEmpty(log *slog.Logger) func(next http.Handler) http.Handler {

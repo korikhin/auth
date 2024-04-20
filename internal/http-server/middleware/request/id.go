@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync/atomic"
 
-	ctxlib "github.com/studopolis/auth-server/internal/lib/context"
-	httplib "github.com/studopolis/auth-server/internal/lib/http"
+	ctxlib "github.com/korikhin/auth/internal/lib/context"
+	httplib "github.com/korikhin/auth/internal/lib/http"
 )
 
 var prefix string
