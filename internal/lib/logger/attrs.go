@@ -14,7 +14,7 @@ func Component(c string) slog.Attr {
 }
 
 func Duration(d time.Duration) slog.Attr {
-	return slog.Duration("duration", d)
+	return slog.Duration("duration_nanos", d)
 }
 
 func Error(err error) slog.Attr {
