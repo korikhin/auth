@@ -88,6 +88,7 @@ func main() {
 	}()
 	log.Info("server started")
 
+	// Mock health check
 	healthCheckTerminate := make(chan struct{}, 1)
 	go func() {
 		log := log.With(logger.Component("system/health"))
