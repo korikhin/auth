@@ -33,13 +33,12 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http
 				return
 			}
 
-			mask := &jwt.ValidationMask{
-				IssuedAt: true,
-				Issuer:   a.Options.Issuer,
-				Leeway:   a.Options.Leeway,
+			opts := jwt.ValidationOptions{
+				Issuer: a.Options.Issuer,
+				Leeway: a.Options.Leeway,
 			}
 
-			claims, err := a.ValidateAccess(accessToken, mask)
+			claims, err := a.ValidateAccess(accessToken, opts)
 			if err != nil && !errors.Is(err, jwt.ErrTokenExpiredOnly) {
 				log.Error("cannot validate token", logger.Error(err))
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
@@ -65,14 +64,13 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http
 					return
 				}
 
-				mask := &jwt.ValidationMask{
-					IssuedAt: true,
-					Issuer:   claims.Issuer,
-					Subject:  claims.Subject,
-					Leeway:   a.Options.Leeway,
+				opts := jwt.ValidationOptions{
+					Issuer:  claims.Issuer,
+					Leeway:  a.Options.Leeway,
+					Subject: claims.Subject,
 				}
 
-				if _, err := a.ValidateRefresh(refreshToken, mask); err != nil {
+				if _, err := a.ValidateRefresh(refreshToken, opts); err != nil {
 					log.Error("cannot validate refresh token", logger.Error(err))
 					http.Error(w, "Invalid token", http.StatusUnauthorized)
 					return

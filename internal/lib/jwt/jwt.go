@@ -31,10 +31,11 @@ var (
 )
 
 type Claims struct {
+	jwt.RegisteredClaims
+
 	// UserID     uint64 `json:"uid"`
 	// UserRole   string `json:"uro"`
 	TokenScope string `json:"scp"`
-	jwt.RegisteredClaims
 }
 
 // Check required claims
@@ -55,9 +56,7 @@ func (c Claims) Validate() error {
 		return jwt.ErrTokenRequiredClaimMissing
 	}
 
-	// If type of Subject changes in the future (e.g. UUID)
-	// use: if c.Subject == "" { return jwt.ErrTokenRequiredClaimMissing }
-	// or other checks if needed
+	// NOTE: The type of Subject may change to string
 	if _, err := strconv.ParseUint(c.Subject, 10, 64); err != nil {
 		return jwt.ErrTokenInvalidSubject
 	}
@@ -65,38 +64,36 @@ func (c Claims) Validate() error {
 	return nil
 }
 
-type ValidationMask struct {
+type ValidationOptions struct {
 	Audience string
-	IssuedAt bool
 	Issuer   string
 	Leeway   time.Duration
 	Subject  string
 }
 
-func (m *ValidationMask) WithOptions() []jwt.ParserOption {
-	var opts = make([]jwt.ParserOption, 0, 5)
+func (opts *ValidationOptions) WithOptions() []jwt.ParserOption {
+	var p = make([]jwt.ParserOption, 0, 5)
 
-	if m.Audience != "" {
-		opts = append(opts, jwt.WithAudience(m.Audience))
+	// Required
+	p = append(p, jwt.WithIssuedAt())
+
+	if opts.Audience != "" {
+		p = append(p, jwt.WithAudience(opts.Audience))
 	}
 
-	if m.IssuedAt {
-		opts = append(opts, jwt.WithIssuedAt())
+	if opts.Issuer != "" {
+		p = append(p, jwt.WithIssuer(opts.Issuer))
 	}
 
-	if m.Issuer != "" {
-		opts = append(opts, jwt.WithIssuer(m.Issuer))
+	if opts.Leeway > 0 {
+		p = append(p, jwt.WithLeeway(opts.Leeway))
 	}
 
-	if m.Leeway > 0 {
-		opts = append(opts, jwt.WithLeeway(m.Leeway))
+	if opts.Subject != "" {
+		p = append(p, jwt.WithSubject(opts.Subject))
 	}
 
-	if m.Subject != "" {
-		opts = append(opts, jwt.WithSubject(m.Subject))
-	}
-
-	return opts
+	return p
 }
 
 type JWTService struct {
@@ -110,8 +107,8 @@ func NewService(c config.JWT) *JWTService {
 	return &JWTService{Options: c}
 }
 
-// Lazy load of secrets
-func (a *JWTService) load() {
+// Lazy load
+func (a *JWTService) loadKeys() {
 	const fatalMsg = "failed to initialize key management: please check system configuration"
 
 	a.once.Do(func() {
@@ -129,14 +126,14 @@ func (a *JWTService) load() {
 	})
 }
 
-func (a *JWTService) validate(token, scope string, m *ValidationMask) (*Claims, error) {
+func (a *JWTService) validate(token, scope string, opts ValidationOptions) (*Claims, error) {
 	const op = "jwt.Validate"
 
-	a.load()
+	a.loadKeys()
 
 	t, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return a.pubk, nil
-	}, m.WithOptions()...)
+	}, opts.WithOptions()...)
 
 	var isExpiredOnly bool
 	if err != nil {
@@ -161,18 +158,18 @@ func (a *JWTService) validate(token, scope string, m *ValidationMask) (*Claims, 
 	return c, nil
 }
 
-func (a *JWTService) ValidateAccess(token string, m *ValidationMask) (*Claims, error) {
-	return a.validate(token, scopeAccess, m)
+func (a *JWTService) ValidateAccess(token string, opts ValidationOptions) (*Claims, error) {
+	return a.validate(token, scopeAccess, opts)
 }
 
-func (a *JWTService) ValidateRefresh(token string, m *ValidationMask) (*Claims, error) {
-	return a.validate(token, scopeRefresh, m)
+func (a *JWTService) ValidateRefresh(token string, opts ValidationOptions) (*Claims, error) {
+	return a.validate(token, scopeRefresh, opts)
 }
 
-func (a *JWTService) issue(user *models.User, scope string) (string, time.Time, error) {
+func (a *JWTService) issue(user models.User, scope string) (string, time.Time, error) {
 	const op = "jwt.Issue"
 
-	a.load()
+	a.loadKeys()
 
 	var ttl time.Duration
 	switch scope {
@@ -206,10 +203,10 @@ func (a *JWTService) issue(user *models.User, scope string) (string, time.Time, 
 	return s, exp, nil
 }
 
-func (a *JWTService) IssueAccess(user *models.User) (string, time.Time, error) {
+func (a *JWTService) IssueAccess(user models.User) (string, time.Time, error) {
 	return a.issue(user, scopeAccess)
 }
 
-func (a *JWTService) IssueRefresh(user *models.User) (string, time.Time, error) {
+func (a *JWTService) IssueRefresh(user models.User) (string, time.Time, error) {
 	return a.issue(user, scopeRefresh)
 }

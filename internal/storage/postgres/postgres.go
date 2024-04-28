@@ -39,7 +39,7 @@ var (
 
 // TODO: Replace connection errors with custom error
 //
-//	Prevent revealing of sensetive info, s.a. connection details etc.
+// Prevent revealing of sensetive info, s.a. connection details etc.
 func sanitizeError(err error) error {
 	return err
 
@@ -73,8 +73,9 @@ func initializePool(ctx context.Context, config config.Storage) (*pgxpool.Pool, 
 	return newPool, nil
 }
 
-// New initializes a new Storage instance with a database connection pool.
-// It ensures a thread-safe pool creation which persists across multiple
+// New initializes a new Storage instance with a database connection pool
+//
+// It ensures a safe pool creation which persists across multiple
 // calls until Stop is invoked.
 func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	const op = "storage.postgres.New"
@@ -83,10 +84,10 @@ func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	defer initMu.Unlock()
 
 	if needsInit {
-		initCtx, cancel := context.WithTimeout(ctx, config.StartTimeout)
-		defer cancel()
-
 		poolOnce.Do(func() {
+			initCtx, cancel := context.WithTimeout(ctx, config.StartTimeout)
+			defer cancel()
+
 			pool, initErr = initializePool(initCtx, config)
 			if initErr == nil {
 				needsInit = false
@@ -106,10 +107,8 @@ func New(ctx context.Context, config config.Storage) (*Storage, error) {
 	return &Storage{pool: pool, Options: opts}, nil
 }
 
-// Stop closes the connection pool and resets its state to allow
-// reinitialization with New.
-//
-// Must call New to reuse the pool after Stop.
+// Stop closes the connection pool and clears its resources.
+// Call New to reinitialize the pool after calling Stop.
 func (s *Storage) Stop() {
 	initMu.Lock()
 	defer initMu.Unlock()
@@ -123,12 +122,15 @@ func (s *Storage) Stop() {
 	}
 }
 
-func (s *Storage) User(ctx context.Context, id string) (*models.User, error) {
+// TODO: Test the methods below
+
+func (s *Storage) User(ctx context.Context, id string) (models.User, error) {
 	const op = "storage.postgres.User"
+	var noUser models.User
 
 	userID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return noUser, fmt.Errorf("%s: %w", op, err)
 	}
 
 	query := `
@@ -140,22 +142,23 @@ func (s *Storage) User(ctx context.Context, id string) (*models.User, error) {
 		"id": userID,
 	}
 
-	user := &models.User{}
+	user := models.User{}
 	err = s.pool.QueryRow(ctx, query, args).Scan(&user.Email, &user.PasswordHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
+			return noUser, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 		err = sanitizeError(err)
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return noUser, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user.ID = id
 	return user, nil
 }
 
-func (s *Storage) UserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (s *Storage) UserByEmail(ctx context.Context, email string) (models.User, error) {
 	const op = "storage.postgres.UserByEmail"
+	var noUser models.User
 
 	query := `
 		select id, hash
@@ -166,14 +169,14 @@ func (s *Storage) UserByEmail(ctx context.Context, email string) (*models.User, 
 		"email": email,
 	}
 
-	user := &models.User{}
+	user := models.User{}
 	err := s.pool.QueryRow(ctx, query, args).Scan(&user.ID, &user.PasswordHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
+			return noUser, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 		err = sanitizeError(err)
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return noUser, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user.Email = email

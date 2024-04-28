@@ -15,10 +15,8 @@ func ExpiredOnly(err error) bool {
 		return len(x.Unwrap()) == 1
 	case interface{ Unwrap() error }:
 		return true
-	// case nil:
-	// 	return err == target
 	default:
-		return false
+		return err == target
 	}
 }
 
@@ -31,7 +29,7 @@ func Parent(err, target error) error {
 	return parent(err, target, isComparable)
 }
 
-// note: overkill for fun
+// NOTE: Overkill for fun
 func parent(err, target error, targetComparable bool) error {
 	for {
 		if targetComparable && err == target {
