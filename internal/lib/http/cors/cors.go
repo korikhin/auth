@@ -20,7 +20,6 @@ func New(c config.CORS) func(http.Handler) http.Handler {
 			http.MethodDelete,
 		}),
 		handlers.AllowedHeaders([]string{
-			httplib.HeaderAccept,
 			httplib.HeaderAcceptEncoding,
 			httplib.HeaderAuth,
 			httplib.HeaderAuthorization,
@@ -31,7 +30,6 @@ func New(c config.CORS) func(http.Handler) http.Handler {
 			httplib.HeaderDNT,
 			httplib.HeaderIfModifiedSince,
 			httplib.HeaderKeepAlive,
-			httplib.HeaderOrigin,
 			httplib.HeaderRange,
 			httplib.HeaderRequestedWith,
 			httplib.HeaderRequiredRole,

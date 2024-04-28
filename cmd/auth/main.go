@@ -134,4 +134,5 @@ func main() {
 	}
 
 	log.Info("server stopped successfully")
+	os.Exit(0)
 }
