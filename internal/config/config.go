@@ -85,7 +85,7 @@ func MustLoad(path string) *Config {
 	s := Stage(os.Getenv(fmt.Sprintf("%s%s", prefix, envStage)))
 	if _, ok := stages[s]; !ok {
 		log.Fatalf(
-			"error loading config: please provide stage variable %s%s ('local', 'dev', 'prod')",
+			"error: please provide stage variable %s%s ('local', 'dev', 'prod')",
 			prefix, envStage,
 		)
 	}
@@ -93,24 +93,24 @@ func MustLoad(path string) *Config {
 	cfg := defaultConfig()
 	k := koanf.New(".")
 	if err := k.Load(kstr.Provider(cfg, Tag), nil); err != nil {
-		log.Fatalf("error setting default config values: %v", err)
+		log.Fatalf("error setting default config: %v", err)
 	}
 
 	if s == Local {
 		if path == "" {
-			log.Fatal("error loading config: please provide config path via --config flag")
+			log.Fatal("error: please provide config path via --config flag")
 		}
 		if err := k.Load(kfile.Provider(path), kyaml.Parser()); err != nil {
-			log.Fatalf("error loading config: %v", err)
+			log.Fatalf("error: %v", err)
 		}
 	}
 
 	if err := k.Load(kenv.Provider(prefix, ".", env2Config(prefix)), nil); err != nil {
-		log.Fatalf("error loading config: %v", err)
+		log.Fatalf("error: %v", err)
 	}
 
 	if err := k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: Tag}); err != nil {
-		log.Fatalf("error unmarshaling config: %v", err)
+		log.Fatalf("error: %v", err)
 	}
 
 	return cfg
