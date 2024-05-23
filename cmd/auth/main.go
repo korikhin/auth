@@ -28,7 +28,7 @@ func usage() {
 	_, _ = fmt.Fprintln(w, "Authentication Server\nFlags:")
 
 	flag.VisitAll(func(f *flag.Flag) {
-		_, _ = fmt.Fprintf(w, "  --%-15s %s (default: %q)\n", f.Name, f.Usage, f.DefValue)
+		_, _ = fmt.Fprintf(w, "  --%-15s %s (default: %s)\n", f.Name, f.Usage, f.DefValue)
 	})
 }
 
@@ -108,10 +108,8 @@ func main() {
 					continue
 				}
 				conn.Close()
+				log.Info("") // Health check is successful
 			}
-
-			// Health check is successful
-			log.Info("")
 		}
 	}()
 

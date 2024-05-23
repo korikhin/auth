@@ -19,10 +19,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	errInvalidCredentials = response.Error("invalid credentials", http.StatusUnauthorized)
-)
-
 // TODO?: Refactor token (re)issuing
 func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -34,40 +30,39 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 		)
 
 		c := &validation.Credentials{}
-
 		err := codec.DecodeJSON(r.Body, c)
 		if err != nil {
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError)
+			codec.JSONResponse(w, response.InternalError, http.StatusInternalServerError)
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), s.Options.ReadTimeout)
+		ctxStorage, cancel := context.WithTimeout(context.Background(), s.Options.ReadTimeout)
 		defer cancel()
 
-		user, err := s.UserByEmail(ctx, c.Email)
+		user, err := s.UserByEmail(ctxStorage, c.Email)
 		if err != nil {
 			if errors.Is(err, st.ErrUserNotFound) {
 				log.Warn("user not found", logger.Error(err))
-				codec.JSONResponse(w, r, errInvalidCredentials)
+				codec.JSONResponse(w, response.Error("user not found"), http.StatusNotFound)
 				return
 			}
 
 			log.Error("failed to get user", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError)
+			codec.JSONResponse(w, response.InternalError, http.StatusInternalServerError)
 			return
 		}
 
 		if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(c.Password)); err != nil {
 			log.Info("invalid credentials", logger.Error(err))
-			codec.JSONResponse(w, r, errInvalidCredentials)
+			codec.JSONResponse(w, response.Error("invalid credentials"), http.StatusUnauthorized)
 			return
 		}
 
 		refreshToken, exp, err := a.IssueRefresh(user)
 		if err != nil {
 			log.Error("cannot issue refresh token", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError)
+			codec.JSONResponse(w, response.InternalError, http.StatusInternalServerError)
 			return
 		}
 		jwt.SetRefreshToken(w, refreshToken, exp)
@@ -75,13 +70,12 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) http.Handler {
 		accessToken, _, err := a.IssueAccess(user)
 		if err != nil {
 			log.Error("cannot issue token", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError)
+			codec.JSONResponse(w, response.InternalError, http.StatusInternalServerError)
 			return
 		}
 		jwt.SetAccessToken(w, accessToken)
 
-		response := response.Ok("user logged in successfully", http.StatusOK)
-		codec.JSONResponse(w, r, response)
+		codec.JSONResponse(w, response.Ok("user logged successfully"), http.StatusOK)
 	}
 
 	return http.HandlerFunc(handler)

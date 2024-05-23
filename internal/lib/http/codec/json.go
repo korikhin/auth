@@ -6,23 +6,20 @@ import (
 	"io"
 	"net/http"
 
-	ctxlib "github.com/korikhin/auth/internal/lib/context"
 	httplib "github.com/korikhin/auth/internal/lib/http"
 )
 
-func JSONResponse(w http.ResponseWriter, r *http.Request, v interface{}) {
+func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(true)
 	if err := enc.Encode(v); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set(httplib.HeaderContentType, httplib.ContentTypeJSON)
-	if status, ok := r.Context().Value(ctxlib.StatusKey).(int); ok {
-		w.WriteHeader(status)
-	}
+	w.WriteHeader(statusCode)
 	w.Write(buf.Bytes())
 }
 

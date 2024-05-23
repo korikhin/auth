@@ -52,8 +52,8 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http
 				userID := claims.Subject
 				user, err := s.User(ctxStorage, userID)
 				if err != nil {
-					log.Error(fmt.Sprintf("cannot find user: %v", userID), logger.Error(err))
-					http.Error(w, "User not found", http.StatusInternalServerError)
+					log.Warn(fmt.Sprintf("cannot find user: %v", userID), logger.Error(err))
+					http.Error(w, "User not found", http.StatusNotFound)
 					return
 				}
 
@@ -93,8 +93,8 @@ func New(log *slog.Logger, a *jwt.JWTService, s *storage.Storage) func(next http
 				jwt.SetAccessToken(w, accessToken)
 			}
 
-			ctxHTTP := context.WithValue(r.Context(), ctxlib.UserKey, claims)
-			next.ServeHTTP(w, r.WithContext(ctxHTTP))
+			ctx := context.WithValue(r.Context(), ctxlib.UserKey, claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 
 		return http.HandlerFunc(handler)

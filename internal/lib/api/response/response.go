@@ -2,7 +2,6 @@ package response
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 )
 
@@ -18,47 +17,42 @@ const (
 )
 
 var (
-	EmptyRequest  = Error("request body is empty", http.StatusBadRequest)
-	InternalError = Error("internal server error", http.StatusInternalServerError)
+	EmptyRequest  = Error("request body is empty")
+	InternalError = Error("internal server error")
 )
 
 type Response struct {
-	Code    int    `json:"code"`
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`
 	Details string `json:"details,omitempty"`
 }
 
-func Ok(msg string, code int) Response {
-	if code < 200 || code > 299 {
-		code = http.StatusOK
-	}
-
+func Ok(msg string) Response {
 	return Response{
-		Code:    code,
 		Status:  StatusOK,
 		Message: msg,
 	}
 }
 
-func Error(msg string, code int, details ...any) Response {
-	if code < 400 || code > 599 {
-		code = http.StatusInternalServerError
-	}
+func Error(msg string, details ...any) Response {
 	r := Response{
-		Code:    code,
 		Status:  StatusError,
 		Message: msg,
 	}
 
 	if len(details) > 0 {
-		m := []string{}
-		for _, d := range details {
-			m = append(m, fmt.Sprint(d))
+		var builder strings.Builder
+		for i, d := range details {
+			if i > 0 {
+				builder.WriteString(", ")
+			}
+			builder.WriteString(fmt.Sprint(d))
+			if builder.Len() > detailsMaxLength {
+				break
+			}
 		}
 
-		detailsJoined := strings.Join(m, ", ")
-		// Trim details
+		detailsJoined := builder.String()
 		if len(detailsJoined) > detailsMaxLength {
 			detailsJoined = fmt.Sprintf(
 				"%s%s",

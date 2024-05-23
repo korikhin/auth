@@ -22,18 +22,20 @@ func Validate(c *Credentials) error {
 	return nil
 }
 
-func formatErrors(e validator.ValidationErrors) error {
-	var msg []string
-	for _, err := range e {
-		switch err.ActualTag() {
+func formatErrors(validationErrors validator.ValidationErrors) error {
+	var messages []string
+	for _, err := range validationErrors {
+		var message string
+		switch field := err.Field(); err.ActualTag() {
 		case "required":
-			msg = append(msg, fmt.Sprintf("field %s is required", err.Field()))
+			message = fmt.Sprintf("field %s is required", field)
 		case "email":
-			msg = append(msg, fmt.Sprintf("field %s is not a valid email", err.Field()))
+			message = fmt.Sprintf("field %s is not a valid email", field)
 		default:
-			msg = append(msg, fmt.Sprintf("field %s is not valid", err.Field()))
+			message = fmt.Sprintf("field %s is not valid", field)
 		}
+		messages = append(messages, message)
 	}
 
-	return errors.New(strings.Join(msg, ", "))
+	return errors.New(strings.Join(messages, ", "))
 }

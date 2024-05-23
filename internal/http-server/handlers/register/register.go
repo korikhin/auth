@@ -20,7 +20,7 @@ import (
 const hashCost = 7
 
 var (
-	errCannotCreateUser = response.Error("cannot create user", http.StatusInternalServerError)
+	errCannotCreateUser = response.Error("cannot create user")
 )
 
 func New(log *slog.Logger, s *storage.Storage) http.Handler {
@@ -37,39 +37,36 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		err := codec.DecodeJSON(r.Body, c)
 		if err != nil {
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, r, response.InternalError)
+			codec.JSONResponse(w, response.InternalError, http.StatusInternalServerError)
 			return
 		}
 
 		err = validation.Validate(c)
 		if err != nil {
 			log.Error("bad request", logger.Error(err))
-			codec.JSONResponse(w, r, response.Error("bad request", http.StatusBadRequest, err))
+			codec.JSONResponse(w, response.Error("bad request", err), http.StatusBadRequest)
 			return
 		}
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(c.Password), hashCost)
 		if err != nil {
 			log.Error("failed to create password hash", logger.Error(err))
-			codec.JSONResponse(w, r, errCannotCreateUser)
+			codec.JSONResponse(w, errCannotCreateUser, http.StatusInternalServerError)
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), s.Options.WriteTimeout)
+		ctxStorage, cancel := context.WithTimeout(context.Background(), s.Options.WriteTimeout)
 		defer cancel()
 
-		userID, err := s.SaveUser(ctx, c.Email, hash)
+		userID, err := s.SaveUser(ctxStorage, c.Email, hash)
 		if err != nil {
 			log.Error("failed to register the user", logger.Error(err))
-			codec.JSONResponse(w, r, errCannotCreateUser)
+			codec.JSONResponse(w, errCannotCreateUser, http.StatusInternalServerError)
 			return
 		}
 
-		response := response.Ok(
-			fmt.Sprintf("user successfully registered: %v", userID),
-			http.StatusCreated,
-		)
-		codec.JSONResponse(w, r, response)
+		response := response.Ok(fmt.Sprintf("user successfully registered: %v", userID))
+		codec.JSONResponse(w, response, http.StatusCreated)
 	}
 
 	return http.HandlerFunc(handler)
