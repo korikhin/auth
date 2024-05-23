@@ -124,13 +124,12 @@ func (s *Storage) Stop() {
 
 // TODO: Test the methods below
 
-func (s *Storage) User(ctx context.Context, id string) (models.User, error) {
+func (s *Storage) User(ctx context.Context, id string) (*models.User, error) {
 	const op = "storage.postgres.User"
-	var noUser models.User
 
 	userID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		return noUser, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	query := `
@@ -142,23 +141,22 @@ func (s *Storage) User(ctx context.Context, id string) (models.User, error) {
 		"id": userID,
 	}
 
-	user := models.User{}
+	user := &models.User{}
 	err = s.pool.QueryRow(ctx, query, args).Scan(&user.Email, &user.PasswordHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return noUser, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 		err = sanitizeError(err)
-		return noUser, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user.ID = id
 	return user, nil
 }
 
-func (s *Storage) UserByEmail(ctx context.Context, email string) (models.User, error) {
+func (s *Storage) UserByEmail(ctx context.Context, email string) (*models.User, error) {
 	const op = "storage.postgres.UserByEmail"
-	var noUser models.User
 
 	query := `
 		select id, hash
@@ -169,14 +167,14 @@ func (s *Storage) UserByEmail(ctx context.Context, email string) (models.User, e
 		"email": email,
 	}
 
-	user := models.User{}
+	user := &models.User{}
 	err := s.pool.QueryRow(ctx, query, args).Scan(&user.ID, &user.PasswordHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return noUser, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 		err = sanitizeError(err)
-		return noUser, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user.Email = email

@@ -203,10 +203,10 @@ func (a *JWTService) issue(user models.User, scope string) (string, time.Time, e
 	return s, exp, nil
 }
 
-func (a *JWTService) IssueAccess(user models.User) (string, time.Time, error) {
-	return a.issue(user, scopeAccess)
+func (a *JWTService) IssueAccess(user *models.User) (string, time.Time, error) {
+	return a.issue(*user, scopeAccess)
 }
 
-func (a *JWTService) IssueRefresh(user models.User) (string, time.Time, error) {
-	return a.issue(user, scopeRefresh)
+func (a *JWTService) IssueRefresh(user *models.User) (string, time.Time, error) {
+	return a.issue(*user, scopeRefresh)
 }
