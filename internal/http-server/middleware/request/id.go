@@ -58,7 +58,6 @@ func GetID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-
 	if id, ok := ctx.Value(ctxlib.RequestKey).(string); ok {
 		return id
 	}
