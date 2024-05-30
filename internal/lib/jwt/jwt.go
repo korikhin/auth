@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	headerAuthPrefix   = "Bearer"
-	refreshTokenCookie = "_korikhin.rt"
-	scopeAccess        = "a"
-	scopeRefresh       = "r"
+	refreshTokenCookie = "_example.com.rt"
+	scopeAccess        = ">"
+	scopeRefresh       = "*"
 )
 
 var (
@@ -26,15 +25,14 @@ var (
 	ErrTokenInvalid      = errors.New("token is invalid")
 	ErrTokenExpiredOnly  = errors.New("token is expired")
 	ErrTokenInvalidScope = errors.New("token has invalid scope")
-	// ErrRoleHeaderMissing = errors.New("required role header is missing")
-	// ErrAccessDenied      = errors.New("denied")
+	// ErrAccessDenied      = errors.New("access denied")
 )
 
 type Claims struct {
 	jwt.RegisteredClaims
 
 	// UserID     uint64 `json:"uid"`
-	// UserRole   string `json:"uro"`
+	// UserRole   string `json:"rol"`
 	TokenScope string `json:"scp"`
 }
 
@@ -80,15 +78,12 @@ func (opts *ValidationOptions) WithOptions() []jwt.ParserOption {
 	if opts.Audience != "" {
 		p = append(p, jwt.WithAudience(opts.Audience))
 	}
-
 	if opts.Issuer != "" {
 		p = append(p, jwt.WithIssuer(opts.Issuer))
 	}
-
 	if opts.Leeway > 0 {
 		p = append(p, jwt.WithLeeway(opts.Leeway))
 	}
-
 	if opts.Subject != "" {
 		p = append(p, jwt.WithSubject(opts.Subject))
 	}
@@ -147,14 +142,13 @@ func (a *JWTService) validate(token, scope string, opts ValidationOptions) (*Cla
 	if !ok || !t.Valid && !isExpiredOnly {
 		return nil, fmt.Errorf("%s: %w", op, ErrTokenInvalid)
 	}
-
 	if c.TokenScope != scope {
 		return nil, fmt.Errorf("%s: %w", op, ErrTokenInvalidScope)
 	}
-
 	if isExpiredOnly {
 		return c, ErrTokenExpiredOnly
 	}
+
 	return c, nil
 }
 

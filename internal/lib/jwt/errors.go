@@ -16,7 +16,7 @@ func ExpiredOnly(err error) bool {
 	case interface{ Unwrap() error }:
 		return true
 	default:
-		return err == target
+		return false
 	}
 }
 

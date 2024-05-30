@@ -6,8 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/korikhin/auth/internal/lib/api/response"
-	"github.com/korikhin/auth/internal/lib/api/validation"
+	"github.com/korikhin/auth/internal/lib/api"
 	"github.com/korikhin/auth/internal/lib/http/codec"
 	"github.com/korikhin/auth/internal/lib/logger"
 	storage "github.com/korikhin/auth/internal/storage/postgres"
@@ -20,7 +19,7 @@ import (
 const hashCost = 7
 
 var (
-	errCannotCreateUser = response.Error("cannot create user")
+	errCannotCreateUser = api.Error("cannot create user")
 )
 
 func New(log *slog.Logger, s *storage.Storage) http.Handler {
@@ -32,26 +31,26 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 			logger.RequestID(reqMW.GetID(r.Context())),
 		)
 
-		c := &validation.Credentials{}
+		c := &api.Credentials{}
 
 		err := codec.DecodeJSON(r.Body, c)
 		if err != nil {
 			log.Error("failed to decode request body", logger.Error(err))
-			codec.JSONResponse(w, response.InternalError, http.StatusInternalServerError)
+			codec.ResponseJSON(w, api.InternalError, http.StatusInternalServerError)
 			return
 		}
 
-		err = validation.Validate(c)
+		err = api.Validate(c)
 		if err != nil {
 			log.Error("bad request", logger.Error(err))
-			codec.JSONResponse(w, response.Error("bad request", err), http.StatusBadRequest)
+			codec.ResponseJSON(w, api.Error("bad request", err), http.StatusBadRequest)
 			return
 		}
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(c.Password), hashCost)
 		if err != nil {
 			log.Error("failed to create password hash", logger.Error(err))
-			codec.JSONResponse(w, errCannotCreateUser, http.StatusInternalServerError)
+			codec.ResponseJSON(w, errCannotCreateUser, http.StatusInternalServerError)
 			return
 		}
 
@@ -61,12 +60,12 @@ func New(log *slog.Logger, s *storage.Storage) http.Handler {
 		userID, err := s.SaveUser(ctxStorage, c.Email, hash)
 		if err != nil {
 			log.Error("failed to register the user", logger.Error(err))
-			codec.JSONResponse(w, errCannotCreateUser, http.StatusInternalServerError)
+			codec.ResponseJSON(w, errCannotCreateUser, http.StatusInternalServerError)
 			return
 		}
 
-		response := response.Ok(fmt.Sprintf("user successfully registered: %v", userID))
-		codec.JSONResponse(w, response, http.StatusCreated)
+		response := api.Ok(fmt.Sprintf("user successfully registered: %v", userID))
+		codec.ResponseJSON(w, response, http.StatusCreated)
 	}
 
 	return http.HandlerFunc(handler)

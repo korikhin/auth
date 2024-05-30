@@ -13,7 +13,7 @@ func GetAccessToken(r *http.Request) (string, error) {
 	const op = "jwt.GetAccessToken"
 
 	h := r.Header.Get(httplib.HeaderAuth)
-	b, a, found := strings.Cut(h, fmt.Sprintf("%s ", headerAuthPrefix))
+	b, a, found := strings.Cut(h, "Bearer ")
 
 	if !found || b != "" {
 		return "", fmt.Errorf("%s: %w", op, ErrTokenInvalid)
@@ -25,7 +25,7 @@ func GetAccessToken(r *http.Request) (string, error) {
 func SetAccessToken(w http.ResponseWriter, token string) {
 	// const op = "jwt.SetAccessToken"
 
-	h := fmt.Sprintf("%s %s", headerAuthPrefix, token)
+	h := fmt.Sprintf("Bearer %s", token)
 	w.Header().Set(httplib.HeaderAuth, h)
 }
 

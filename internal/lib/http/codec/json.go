@@ -9,7 +9,7 @@ import (
 	httplib "github.com/korikhin/auth/internal/lib/http"
 )
 
-func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {
+func ResponseJSON(w http.ResponseWriter, v interface{}, statusCode int) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(true)
